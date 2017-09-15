@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebJobs.Extensions.O365", "WebJobs.Extensions.O365\WebJobs.Extensions.O365.csproj", "{B503849F-9A01-48E8-9401-76769F4CC745}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleHost", "SampleHost\SampleHost.csproj", "{A93FB0B9-7C26-40E0-8F6D-804D5B800524}"
+	ProjectSection(ProjectDependencies) = postProject
+		{397A114E-0075-48F8-AA01-11F3FDFDEC25} = {397A114E-0075-48F8-AA01-11F3FDFDEC25}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TokenBinding", "TokenBinding\TokenBinding.csproj", "{397A114E-0075-48F8-AA01-11F3FDFDEC25}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{06065EFC-CB7A-49E4-B57F-B89B8CC01AA8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TokenExtension.Tests", "test\TokenExtension.Tests\TokenExtension.Tests.csproj", "{39053A38-67E7-46BB-AFD6-EFEF705ECE6C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B503849F-9A01-48E8-9401-76769F4CC745}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B503849F-9A01-48E8-9401-76769F4CC745}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B503849F-9A01-48E8-9401-76769F4CC745}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B503849F-9A01-48E8-9401-76769F4CC745}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A93FB0B9-7C26-40E0-8F6D-804D5B800524}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A93FB0B9-7C26-40E0-8F6D-804D5B800524}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A93FB0B9-7C26-40E0-8F6D-804D5B800524}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A93FB0B9-7C26-40E0-8F6D-804D5B800524}.Release|Any CPU.Build.0 = Release|Any CPU
+		{397A114E-0075-48F8-AA01-11F3FDFDEC25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{397A114E-0075-48F8-AA01-11F3FDFDEC25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{397A114E-0075-48F8-AA01-11F3FDFDEC25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{397A114E-0075-48F8-AA01-11F3FDFDEC25}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39053A38-67E7-46BB-AFD6-EFEF705ECE6C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39053A38-67E7-46BB-AFD6-EFEF705ECE6C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39053A38-67E7-46BB-AFD6-EFEF705ECE6C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39053A38-67E7-46BB-AFD6-EFEF705ECE6C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{39053A38-67E7-46BB-AFD6-EFEF705ECE6C} = {06065EFC-CB7A-49E4-B57F-B89B8CC01AA8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {443E037E-BBF5-466D-831A-91A375A7FFDC}
+	EndGlobalSection
+EndGlobal
