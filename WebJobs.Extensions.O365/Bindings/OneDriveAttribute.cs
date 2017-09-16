@@ -15,6 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
         /// Gets or sets path FROM ONEDRIVE ROOT to file
         /// e.g. "Documents/testing.docx"
         /// </summary>
+        [AutoResolve]
         public string Path { get; set; }
     }
 }
