@@ -30,20 +30,22 @@ namespace Microsoft.Azure.WebJobs.Extensions
             // A single webhook might get notifications from different users. 
             List<WebhookTriggerData> resources = new List<WebhookTriggerData>();
 
-            var cache = _extension.webhookCache;
+            var subscriptionStore = _extension.subscriptionStore;
 
             foreach (Notification notification in notifications.Value)
             {
                 var subId = notification.SubscriptionId;
-                var entry = await cache.GetSubscriptionEntryAsync(subId);
+                var entry = await subscriptionStore.GetSubscriptionEntryAsync(subId);
                 if (entry == null)
                 {
+                    _extension.Log.Error($"No subscription exists in our store for subscription id: {subId}");
                     // mapping of subscription ID to principal ID does not exist in file system
                     continue;
                 }
 
                 if (entry.Subscription.ClientState != notification.ClientState)
                 {
+                    _extension.Log.Verbose($"The subscription store's client state: {entry.Subscription.ClientState} did not match the notifications's client state: {notification.ClientState}");
                     // Stored client state does not match client state we just received
                     continue;
                 }
@@ -51,6 +53,8 @@ namespace Microsoft.Azure.WebJobs.Extensions
                 // call onto Graph to fetch the resource
                 var userId = entry.UserId;
                 var graphClient = await _extension.GetMSGraphClientFromUserIdAsync(userId);
+
+                _extension.Log.Verbose($"A graph client was obtained for subscription id: {subId}");
 
                 // Prepend with / if necessary
                 if (notification.Resource[0] != '/')
@@ -66,9 +70,15 @@ namespace Microsoft.Azure.WebJobs.Extensions
                     RequestUri = new Uri(url),
                 };
 
+                _extension.Log.Verbose($"Making a GET request to {url} on behalf of subId: {subId}");
+
                 await graphClient.AuthenticationProvider.AuthenticateRequestAsync(request); // Add authentication header
                 var response = await graphClient.HttpProvider.SendAsync(request);
-                var actualPayload = JObject.Parse(response.Content.ReadAsStringAsync().Result);
+                string responseContent = await response.Content.ReadAsStringAsync();
+
+                _extension.Log.Verbose($"Recieved {responseContent} from request to {url}");
+
+                var actualPayload = JObject.Parse(responseContent);
 
                 // Superimpose some common properties onto the JObject for easy access.
                 actualPayload["ClientState"] = entry.Subscription.ClientState;
@@ -96,9 +106,11 @@ namespace Microsoft.Azure.WebJobs.Extensions
                 resources.Add(data);
             }
 
+            _extension.Log.Verbose($"Triggering {resources.Count} GraphWebhookTriggers");
             Task[] webhookReceipts = resources.Select(item => _extension.OnWebhookReceived(item)).ToArray();
 
             Task.WaitAll(webhookReceipts);
+            _extension.Log.Verbose($"Finished responding to notifications.");
         }
 
         // See here for subscribing and payload information.
@@ -111,6 +123,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
             string validationToken = nvc["validationToken"];
             if (validationToken != null)
             {
+                
                 return HandleInitialValidation(validationToken);
             }
 
@@ -119,6 +132,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
 
         private HttpResponseMessage HandleInitialValidation(string validationToken)
         {
+            _extension.Log.Verbose($"Returning a 200 OK Response to a request to {_extension.NotificationUrl} with a validation token of {validationToken}");
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(validationToken, Encoding.UTF8, "plain/text"),
@@ -130,6 +144,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
             string json = await request.Content.ReadAsStringAsync();
             var notifications = JsonConvert.DeserializeObject<NotificationPayload>(json);
 
+            _extension.Log.Verbose($"Received a notification payload of {json}");
             // We have 30sec to reply to the payload.
             // So offload everything else (especially fetches back to the graph and executing the user function)
             Task.Run(() => HandleNotifications(notifications));

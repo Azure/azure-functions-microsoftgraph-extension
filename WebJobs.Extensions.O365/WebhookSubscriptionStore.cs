@@ -16,19 +16,19 @@ namespace Microsoft.Azure.WebJobs.Extensions
     /// <summary>
     /// Store mapping from webhook subscription IDs to a token.
     /// </summary>
-    internal class WebhookTokenCache
+    internal class WebhookSubscriptionStore
     {
         private string root; // @"C:\temp\sub";
 
         private FileLock _fileLock;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="WebhookTokenCache"/> class.
+        /// Initializes a new instance of the <see cref="WebhookSubscriptionStore"/> class.
         /// Find webhook token cache path
         /// If it doesn't exist, create directory
         /// </summary>
         /// <param name="home">Value of app setting used to det. webhook token cache path</param>
-        public WebhookTokenCache(string home)
+        public WebhookSubscriptionStore(string home)
         {
             this.root = home ?? O365Constants.DefaultBYOBLocation;
             _fileLock = new FileLock();

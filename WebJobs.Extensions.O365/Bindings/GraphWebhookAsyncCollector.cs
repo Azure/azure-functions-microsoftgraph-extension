@@ -59,11 +59,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
         {
             var client = await _extension.GetMSGraphClientAsync(_attribute);
             var userInfo = await client.Me.Request().Select("Id").GetAsync();
-            var cache = _extension.webhookCache;
+            var cache = _extension.subscriptionStore;
 
             var subscriptions = _values.Select(GetSubscription);
             foreach (var subscription in subscriptions)
             {
+                _extension.Log.Verbose($"Sending a request to {_extension.NotificationUrl} expecting a 200 response for a subscription to {subscription.Resource}");
                 var newSubscription = await client.Subscriptions.Request().AddAsync(subscription);
                 await cache.SaveSubscriptionEntryAsync(newSubscription, userInfo.Id);
             }
@@ -107,7 +108,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
             finally
             {
                 // Regardless of whether or not deleting the Graph subscription succeeded, delete the file
-                _extension.webhookCache.DeleteAsync(id);
+                _extension.subscriptionStore.DeleteAsync(id);
             }
         }
 
@@ -140,7 +141,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
                 _extension.Log.Info($"Failed to renew MS Graph subscription {id}.\n Either it never existed or it has already expired.");
 
                 // If the subscription is expired, it can no longer be renewed, so delete the file
-                _extension.webhookCache.DeleteAsync(id);
+                _extension.subscriptionStore.DeleteAsync(id);
             }
         }
     }

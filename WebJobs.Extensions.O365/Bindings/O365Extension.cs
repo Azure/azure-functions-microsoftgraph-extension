@@ -37,7 +37,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
         private TokenExtensionConfig tokenExtension;
 
         // Cache for communicating tokens across webhooks
-        internal WebhookTokenCache webhookCache;
+        internal WebhookSubscriptionStore subscriptionStore;
 
         private WebhookTriggerBindingProvider webhookTriggerProvider;
 
@@ -92,7 +92,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
             webhookCreatorRule.BindToCollector<string>(converter.CreateCollector);
 
             string appSettingBYOBTokenMap = appSettings.Resolve(O365Constants.AppSettingBYOBTokenMap);
-            this.webhookCache = new WebhookTokenCache(appSettingBYOBTokenMap);
+            this.subscriptionStore = new WebhookSubscriptionStore(appSettingBYOBTokenMap);
             this.webhookTriggerProvider = new WebhookTriggerBindingProvider();
             context.AddBindingRule<GraphWebhookTriggerAttribute>().BindToTrigger(this.webhookTriggerProvider);
 
@@ -492,7 +492,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
 
             private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphSubscriptionAttribute attribute)
             {
-                IEnumerable<WebhookTokenCache.SubscriptionEntry> subscriptionEntries = await _parent.webhookCache.GetAllSubscriptionsAsync();
+                IEnumerable<WebhookSubscriptionStore.SubscriptionEntry> subscriptionEntries = await _parent.subscriptionStore.GetAllSubscriptionsAsync();
                 if (attribute.UserId != null)
                 {
                     subscriptionEntries = subscriptionEntries.Where(entry => entry.UserId.Equals(attribute.UserId));
