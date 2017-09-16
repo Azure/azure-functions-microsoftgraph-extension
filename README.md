@@ -33,4 +33,11 @@ when we receive the webhook.
 The Samples project is a command line drive to invoke the bindings on a sample file (Function.cs) 
 The OfficeBindings project contains the bindings. This is what Azure Functions would load. 
 
+## License
+
+This project is under the benevolent umbrella of the [.NET Foundation](http://www.dotnetfoundation.org/) and is licensed under [the MIT License](https://github.com/Azure/azure-webjobs-sdk/blob/master/LICENSE.txt)
+
+## Contributing
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
