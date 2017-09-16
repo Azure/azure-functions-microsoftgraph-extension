@@ -1,0 +1,31 @@
+version: 1.0.{build}
+pull_requests:
+  do_not_increment_build_number: true
+branches:
+  only:
+  - master
+image: Visual Studio 2017
+install:
+- ps: >-
+    $env:CommitHash = "$env:APPVEYOR_REPO_COMMIT"
+
+cache: '%USERPROFILE%\.nuget\packages'
+build_script:
+- ps: >
+    dotnet --version
+
+    dotnet build -v q
+
+    dotnet pack .\TokenBinding\TokenBinding.csproj -o ..\buildoutput --no-build --version-suffix "-$env:APPVEYOR_BUILD_NUMBER"
+
+    dotnet pack .\WebJobs.Extensions.O365\WebJobs.Extensions.O365.csproj -o ..\buildoutput --no-build --version-suffix "-$env:APPVEYOR_BUILD_NUMBER"
+
+test_script:
+- ps: >-
+    dotnet test .\test\TokenExtension.Tests\ -v q --no-build
+
+artifacts:
+- path: buildoutput\*.nupkg
+  name: Binaries
+hosts:
+  api.nuget.org: 93.184.221.200
