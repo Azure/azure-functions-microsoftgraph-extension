@@ -20,7 +20,7 @@ namespace TokenBinding
     public class TokenExtensionConfig : IExtensionConfigProvider
     {
         // Useful for binding to additional inputs
-        public FluentBindingRule<TokenAttribute> TokenRule { get; set; }
+        private FluentBindingRule<TokenAttribute> TokenRule { get; set; }
 
         public EasyAuthClientFactory EasyAuthClientFactory {
             get
@@ -91,7 +91,7 @@ namespace TokenBinding
         /// Initialize the binding extension
         /// </summary>
         /// <param name="context">Context for extension</param>
-        public void Initialize(ExtensionConfigContext context)
+        public void Initialize2(ExtensionConfigContext context)
         {
             var config = context.Config;
 
@@ -99,7 +99,11 @@ namespace TokenBinding
             _log = context.Trace;
 
             AppSettings = AppSettings ?? config.NameResolver;
+        }
 
+        public void Initialize(ExtensionConfigContext context)
+        {
+            Initialize2(context);
             var converter = new Converters(this);
             this.TokenRule = context.AddBindingRule<TokenAttribute>();
             this.TokenRule.BindToInput<string>(converter);

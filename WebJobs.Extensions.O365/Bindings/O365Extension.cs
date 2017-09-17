@@ -64,8 +64,8 @@ namespace Microsoft.Azure.WebJobs.Extensions
 
             // Set up token extension; handles auth (only providers supported by Easy Auth)
             this.tokenExtension = new TokenExtensionConfig();
-            this.tokenExtension.Initialize(context);
-            config.AddExtension(this.tokenExtension);
+            this.tokenExtension.Initialize2(context);
+            //config.AddExtension(this.tokenExtension);
 
             // Set up logging
             this.Log = context.Trace;
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
             var converter = new Converters(this);
 
             // Extend token attribute to retrieve [authenticated] GraphServiceClient
-            this.tokenExtension.TokenRule.BindToInput<GraphServiceClient>(converter);
+            //this.tokenExtension.TokenRule.BindToInput<GraphServiceClient>(converter);
 
             // Webhooks
             var webhookSubscriptionRule = context.AddBindingRule<GraphSubscriptionAttribute>();
