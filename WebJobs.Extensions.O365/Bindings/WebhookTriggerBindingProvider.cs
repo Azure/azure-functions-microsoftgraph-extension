@@ -30,7 +30,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
 
         internal void AddListener(GraphWebhookTriggerAttribute attribute, WebhookTriggerListener listener)
         {
-            if (attribute.Type == null)
+            if (attribute.ResourceType == null)
             {
                 if (_generalListener == null) {
                     throw new InvalidOperationException($"Cannot have multiple graph webhook listeners without types.");
@@ -40,11 +40,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
             }
             else
             {
-                if (_listenerPerDataType.ContainsKey(attribute.Type))
+                if (_listenerPerDataType.ContainsKey(attribute.ResourceType))
                 {
-                    throw new InvalidOperationException($"Cannot have more than one graph webhook listener for {attribute.Type}");
+                    throw new InvalidOperationException($"Cannot have more than one graph webhook listener for {attribute.ResourceType}");
                 }
-                _listenerPerDataType.Add(attribute.Type, listener);
+                _listenerPerDataType.Add(attribute.ResourceType, listener);
             }
         }
 

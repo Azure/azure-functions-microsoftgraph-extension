@@ -13,6 +13,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
         /// Gets or sets oData type of payload
         /// "#Microsoft.Graph.Message", "#Microsoft.Graph.DriveItem", "#Microsoft.Graph.Contact", "#Microsoft.Graph.Event"
         /// </summary>
-        public string Type { get; set; }
+        public string ResourceType { get; set; }
     }
 }
