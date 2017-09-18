@@ -47,7 +47,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
             await host.CallAsync("TokenFunctions.FromId", args);
 
-            var expectedResult = currentToken.access_token;
+            var expectedResult = currentToken.AccessToken;
             Assert.Equal(expectedResult, finalTokenValue);
             ResetState();
         }
@@ -69,7 +69,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
             await host.CallAsync("TokenFunctions.FromId", args);
 
-            var expectedResult = refreshedToken.access_token;
+            var expectedResult = refreshedToken.AccessToken;
             Assert.Equal(expectedResult, finalTokenValue);
             mockClient.Verify(client => client.RefreshToken(It.IsAny<TokenAttribute>()), Times.AtLeastOnce());
             ResetState();
@@ -136,8 +136,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             string accessToken = jwtHandler.CreateJwtSecurityToken(descr).RawEncryptedKey;
             return new EasyAuthTokenStoreEntry()
             {
-                access_token = accessToken,
-                expires_on = expiration,
+                AccessToken = accessToken,
+                ExpiresOn = expiration,
             };
         }
 

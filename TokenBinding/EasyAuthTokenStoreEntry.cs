@@ -6,32 +6,44 @@ using System.Runtime.CompilerServices;
 namespace TokenBinding
 {
     using System;
+    using System.Runtime.Serialization;
 
     /// <summary>
     /// Class representing a single entry in an application's [EasyAuth] Token Store
     /// Names of the fields match the names of the fields returned by the /.auth/me endpoint
     /// </summary>
+    [DataContract]
     internal class EasyAuthTokenStoreEntry
     {
-        public string access_token { get; set; }
+        [DataMember(Name = "access_token", EmitDefaultValue = false)]
+        public string AccessToken { get; set; }
 
-        public string id_token { get; set; } // same value as I'd get from X-MS-TOKEN-AAD-ID-TOKEN header
+        [DataMember(Name = "id_token", EmitDefaultValue = false)]
+        public string IdToken { get; set; }
 
-        public string refresh_token { get; set; }
+        [DataMember(Name = "refresh_token", EmitDefaultValue = false)]
+        public string RefreshToken { get; set; }
 
-        public string provider_name { get; set; }
+        [DataMember(Name = "provider_name")]
+        public string ProviderName { get; set; }
 
-        public string user_id { get; set; }
+        [DataMember(Name = "user_id")]
+        public string UserId { get; set; }
 
-        public DateTime expires_on { get; set; }
+        [DataMember(Name = "expires_on", EmitDefaultValue = false)]
+        public DateTime ExpiresOn { get; set; }
 
+        [DataContract]
         public class Claim
         {
-            public string typ { get; set; }
+            [DataMember(Name = "typ")]
+            public string Type { get; set; }
 
-            public string val { get; set; }
+            [DataMember(Name = "val")]
+            public string Value { get; set; }
         }
 
-        public Claim[] user_claims { get; set; }
+        [DataMember(Name = "user_claims", EmitDefaultValue = false)]
+        public Claim[] UserClaims { get; set; }
     }
 }
