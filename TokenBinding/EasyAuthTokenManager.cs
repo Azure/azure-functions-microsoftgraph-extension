@@ -3,10 +3,8 @@
 
 namespace TokenBinding
 {
-    using Microsoft.Azure.WebJobs.Host;
     using System;
     using System.Threading.Tasks;
-    using static TokenBinding.EasyAuthTokenClient;
 
     /// <summary>
     /// Class representing an application's [EasyAuth] Token Store

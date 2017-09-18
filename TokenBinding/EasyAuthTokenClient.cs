@@ -16,7 +16,7 @@ namespace TokenBinding
     /// <summary>
     /// The client responsible for handling all EasyAuth token-related tasks.
     /// </summary>
-    public class EasyAuthTokenClient : IEasyAuthClient
+    internal class EasyAuthTokenClient : IEasyAuthClient
     {
 
         internal static readonly JwtSecurityTokenHandler JwtHandler = new JwtSecurityTokenHandler();
@@ -144,34 +144,6 @@ namespace TokenBinding
             };
 
             return (JwtSecurityToken)JwtHandler.CreateToken(descr);
-        }
-
-        /// <summary>
-        /// Class representing a single entry in an application's [EasyAuth] Token Store
-        /// Names of the fields match the names of the fields returned by the /.auth/me endpoint
-        /// </summary>
-        public class EasyAuthTokenStoreEntry
-        {
-            public string access_token { get; set; }
-
-            public string id_token { get; set; } // same value as I'd get from X-MS-TOKEN-AAD-ID-TOKEN header
-
-            public string refresh_token { get; set; }
-
-            public string provider_name { get; set; }
-
-            public string user_id { get; set; }
-
-            public DateTime expires_on { get; set; }
-
-            public class Claim
-            {
-                public string typ { get; set; }
-
-                public string val { get; set; }
-            }
-
-            public Claim[] user_claims { get; set; }
         }
 
         public class HmacSigningCredentials : SigningCredentials

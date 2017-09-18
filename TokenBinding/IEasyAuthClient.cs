@@ -1,16 +1,13 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
+using System.Runtime.CompilerServices;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static TokenBinding.EasyAuthTokenClient;
-
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 namespace TokenBinding
 {
-    public interface IEasyAuthClient
+    using System.Threading.Tasks;
+
+    internal interface IEasyAuthClient
     {
         Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(TokenAttribute attribute);
 
