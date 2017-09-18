@@ -142,7 +142,12 @@ namespace Microsoft.Azure.WebJobs.Extensions
         public static string GetTokenOID(string rawToken)
         {
             var jwt = new JwtSecurityToken(rawToken);
-            return jwt.Claims.FirstOrDefault(claim => claim.Type == "oid")?.Value;
+            var oidClaim = jwt.Claims.FirstOrDefault(claim => claim.Type == "oid");
+            if (oidClaim == null)
+            {
+                throw new InvalidOperationException("The graph token is missing an oid. Check your graph binding configuration.");
+            }
+            return oidClaim.Value;
         }
 
         /// <summary>
@@ -156,7 +161,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
             var stringScopes = jwt.Claims.FirstOrDefault(claim => claim.Type == "scp")?.Value;
             if(stringScopes != null)
             {
-                return "";
+                throw new InvalidOperationException("The graph token has no scopes. Ensure you have proper permissions to modify graph.");
             }
             var scopes = stringScopes.Split(' ');
             Array.Sort(scopes);
