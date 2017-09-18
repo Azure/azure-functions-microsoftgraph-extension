@@ -142,7 +142,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
         public static string GetTokenOID(string rawToken)
         {
             var jwt = new JwtSecurityToken(rawToken);
-            return jwt.Claims.FirstOrDefault(claim => claim.Type == "oid").Value;
+            return jwt.Claims.FirstOrDefault(claim => claim.Type == "oid")?.Value;
         }
 
         /// <summary>
@@ -153,7 +153,11 @@ namespace Microsoft.Azure.WebJobs.Extensions
         public static string GetTokenOrderedScopes(string rawToken)
         {
             var jwt = new JwtSecurityToken(rawToken);
-            var stringScopes = jwt.Claims.FirstOrDefault(claim => claim.Type == "scp").Value;
+            var stringScopes = jwt.Claims.FirstOrDefault(claim => claim.Type == "scp")?.Value;
+            if(stringScopes != null)
+            {
+                return "";
+            }
             var scopes = stringScopes.Split(' ');
             Array.Sort(scopes);
             return string.Join(" ", scopes);
