@@ -82,14 +82,11 @@ namespace Microsoft.Azure.WebJobs.Extensions
             //this.tokenExtension.TokenRule.BindToInput<GraphServiceClient>(converter);
 
             // Webhooks
-            var webhookSubscriptionRule = context.AddBindingRule<GraphSubscriptionAttribute>();
+            var webhookSubscriptionRule = context.AddBindingRule<GraphWebhookSubscriptionAttribute>();
 
             webhookSubscriptionRule.BindToInput<Subscription[]>(converter);
             webhookSubscriptionRule.BindToInput<string[]>(converter);
-
-            var webhookCreatorRule = context.AddBindingRule<GraphWebhookAttribute>();
-
-            webhookCreatorRule.BindToCollector<string>(converter.CreateCollector);
+            webhookSubscriptionRule.BindToCollector<string>(converter.CreateCollector);
 
             string appSettingBYOBTokenMap = appSettings.Resolve(O365Constants.AppSettingBYOBTokenMap);
             this.subscriptionStore = new WebhookSubscriptionStore(appSettingBYOBTokenMap);
@@ -404,8 +401,8 @@ namespace Microsoft.Azure.WebJobs.Extensions
             IAsyncConverter<OneDriveAttribute, string>,
             IAsyncConverter<OneDriveAttribute, Stream>,
             IAsyncConverter<OneDriveAttribute, DriveItem>,
-            IAsyncConverter<GraphSubscriptionAttribute, Subscription[]>,
-            IAsyncConverter<GraphSubscriptionAttribute, string[]>
+            IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>,
+            IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>
         {
             private readonly O365Extension _parent;
 
@@ -432,9 +429,9 @@ namespace Microsoft.Azure.WebJobs.Extensions
                 return new OutlookAsyncCollector(client, attr);
             }
 
-            public IAsyncCollector<string> CreateCollector(GraphWebhookAttribute attr)
+            public IAsyncCollector<string> CreateCollector(GraphWebhookSubscriptionAttribute attr)
             {
-                return new GraphWebhookAsyncCollector(_parent, attr);
+                return new GraphWebhookSubscriptionAsyncCollector(_parent, attr);
             }
 
             async Task<GraphServiceClient> IAsyncConverter<TokenAttribute, GraphServiceClient>.ConvertAsync(TokenAttribute attr, CancellationToken cancellationToken)
@@ -488,23 +485,35 @@ namespace Microsoft.Azure.WebJobs.Extensions
                 return await client.GetOneDriveContentDriveItemAsync(input);
             }
 
-            async Task<Subscription[]> IAsyncConverter<GraphSubscriptionAttribute, Subscription[]>.ConvertAsync(GraphSubscriptionAttribute input, CancellationToken cancellationToken)
+            async Task<Subscription[]> IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
             {
                 return await GetSubscriptionsFromAttribute(input);
             }
 
-            async Task<string[]> IAsyncConverter<GraphSubscriptionAttribute, string[]>.ConvertAsync(GraphSubscriptionAttribute input, CancellationToken cancellationToken)
+            async Task<string[]> IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
             {
                 Subscription[] subscriptions = await GetSubscriptionsFromAttribute(input);
                 return subscriptions.Select(sub => sub.Id).ToArray();
             }
 
-            private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphSubscriptionAttribute attribute)
+            private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphWebhookSubscriptionAttribute attribute)
             {
                 IEnumerable<WebhookSubscriptionStore.SubscriptionEntry> subscriptionEntries = await _parent.subscriptionStore.GetAllSubscriptionsAsync();
-                if (attribute.UserId != null)
+                if (string.Equals(attribute.Filter, "userFromRequest"))
                 {
-                    subscriptionEntries = subscriptionEntries.Where(entry => entry.UserId.Equals(attribute.UserId));
+                    var dummyTokenAttribute = new TokenAttribute()
+                    {
+                        Resource = O365Constants.GraphBaseUrl,
+                        Identity = IdentityMode.UserFromToken,
+                        UserToken = attribute.UserToken,
+                        IdentityProvider = "AAD",
+                    };
+                    var graph = await _parent.GetMSGraphClientAsync(dummyTokenAttribute);
+                    var user = await graph.Me.Request().GetAsync();
+                    subscriptionEntries = subscriptionEntries.Where(entry => entry.UserId.Equals(user.Id));
+                } else if (attribute.Filter != null)
+                {
+                    throw new InvalidOperationException($"There is no filter for {attribute.Filter}");
                 }
 
                 return subscriptionEntries.Select(entry => entry.Subscription).ToArray();

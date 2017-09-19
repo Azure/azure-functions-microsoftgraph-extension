@@ -3,23 +3,40 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.Bindings
 {
-    using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Description;
-    using Microsoft.Azure.WebJobs.Extensions;
     using System;
     using TokenBinding;
 
-    // This is filling out a Graph Subscription object. 
-    // https://developer.microsoft.com/en-us/graph/docs/api-reference/v1.0/resources/subscription
+    // This is used to retrieve the locally stored subscriptions
     [Binding]
-    public class GraphWebhookAttribute : GraphTokenAttribute
+    public class GraphWebhookSubscriptionAttribute : GraphTokenAttribute
     {
+        private string _filter;
+
+        /// <summary>
+        /// Gets or sets the UserId to filter subscriptions on; Optional
+        /// </summary>
+        public string Filter {
+            get
+            {
+                return _filter;
+            }
+            set
+            {
+                if (string.Equals(value, "userFromRequest"))
+                {
+                    Identity = IdentityMode.UserFromRequest;   
+                }
+                _filter = value;
+            }
+        }
+        
         /// <summary>
         /// Resource for which we're subscribing to changes.
         /// ie: me/mailFolders('Inbox')/messages
         /// </summary>
         [AutoResolve]
-        public string Listen { get; set; }
+        public string SubscriptionResource { get; set; }
 
         /// <summary>
         /// Gets or sets types of changes that we're subscribing to.
@@ -27,14 +44,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
         /// </summary>
         public ChangeType[] ChangeTypes { get; set; }
 
-        public GraphWebhookAction Action { get; set;}
+        public GraphWebhookSubscriptionAction Action { get; set; }
 
         internal void Validate()
         {
             switch (Action)
             {
-                case GraphWebhookAction.Create:
-                    if (string.IsNullOrEmpty(Listen))
+                case GraphWebhookSubscriptionAction.Create:
+                    if (string.IsNullOrEmpty(SubscriptionResource))
                     {
                         throw new ArgumentException($"A value for listen must be provided in ${Action} mode.");
                     }
@@ -45,9 +62,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
                     }
 
                     break;
-                case GraphWebhookAction.Delete:
-                case GraphWebhookAction.Refresh:
-                    if (!string.IsNullOrEmpty(Listen))
+                case GraphWebhookSubscriptionAction.Delete:
+                case GraphWebhookSubscriptionAction.Refresh:
+                    if (!string.IsNullOrEmpty(SubscriptionResource))
                     {
                         throw new ArgumentException($"No value should be provided for listen in {Action} mode.");
                     }
