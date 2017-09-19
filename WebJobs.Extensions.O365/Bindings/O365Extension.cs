@@ -159,7 +159,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
         {
             var jwt = new JwtSecurityToken(rawToken);
             var stringScopes = jwt.Claims.FirstOrDefault(claim => claim.Type == "scp")?.Value;
-            if(stringScopes != null)
+            if(stringScopes == null)
             {
                 throw new InvalidOperationException("The graph token has no scopes. Ensure your application is properly configured to access the Microsoft Graph.");
             }
