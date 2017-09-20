@@ -11,7 +11,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
     // Per-function.
     // The listener is "passive". It just tracks the context invoker used for calling functions.
     // This receives context that can invoke the function
-    class WebhookTriggerListener : IListener
+    internal class WebhookTriggerListener : IListener
     {
         // The context contains an invoker that can call the user function
         private readonly ListenerFactoryContext _context;

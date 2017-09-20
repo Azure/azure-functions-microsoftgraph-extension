@@ -16,7 +16,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
     using Newtonsoft.Json.Linq;
 
     // Handles the subscription validation and notification payloads
-    public class GraphWebhookSubscriptionHandler
+    internal class GraphWebhookSubscriptionHandler
     {
         private readonly O365Extension _extension; // already has token
 

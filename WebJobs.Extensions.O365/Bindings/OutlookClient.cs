@@ -9,7 +9,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
 
-    public static class OutlookClient
+    internal static class OutlookClient
     {
         /// <summary>
         /// Using the JTokens of a JObject, construct a Microsoft.Graph.Message object

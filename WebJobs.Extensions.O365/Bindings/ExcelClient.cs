@@ -13,7 +13,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
     /// <summary>
     /// Helper for calling onto Excel (MS) Graph
     /// </summary>
-    public static class ExcelClient
+    internal static class ExcelClient
     {
         /// <summary>
         /// Conversion from object[][] to JArray, then set "values" of JObject

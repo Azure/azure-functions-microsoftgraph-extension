@@ -11,7 +11,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
     /// <summary>
     /// Helper class for calling onto (MS) OneDrive Graph
     /// </summary>
-    public static class OneDriveClient
+    internal static class OneDriveClient
     {
         /// <summary>
         /// Retrieve contents of OneDrive file

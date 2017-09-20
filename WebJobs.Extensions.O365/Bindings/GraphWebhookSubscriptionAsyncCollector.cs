@@ -13,7 +13,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
     /// <summary>
     /// Collector class used to accumulate client states and create new subscriptions and cache them
     /// </summary>
-    public class GraphWebhookSubscriptionAsyncCollector : IAsyncCollector<string>
+    internal class GraphWebhookSubscriptionAsyncCollector : IAsyncCollector<string>
     {
         private readonly O365Extension _extension; // already has token
 

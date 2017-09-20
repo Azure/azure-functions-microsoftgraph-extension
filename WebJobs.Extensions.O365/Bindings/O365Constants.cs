@@ -8,7 +8,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
     /// <summary>
     /// Constants needed to communicate with Graph, find app settings, etc.
     /// </summary>
-    public static class O365Constants
+    internal static class O365Constants
     {
         /// <summary>
         /// Base URL used to make any rest API calls

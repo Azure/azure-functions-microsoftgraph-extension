@@ -40,7 +40,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
     /// <summary>
     /// Class containing an array of notifications received in a single blast from MS Graph
     /// </summary>
-    public class NotificationPayload
+    internal class NotificationPayload
     {
         /// <summary>
         /// Gets or sets the array of notifications received by the function app
@@ -52,7 +52,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
     /// Single notification from MS Graph indicating a resource that the user subscribed to has been created/updated/deleted 
     /// Several of these might come in at once
     /// </summary>
-    public class Notification
+    internal class Notification
     {
         /// <summary>
         /// Gets or sets the type of change.
@@ -97,7 +97,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
     /// From within a given Notification
     /// Message, Contact, and Calendar all contain this ResourceData. OneDrive does not.
     /// </summary>
-    public class ResourceData
+    internal class ResourceData
     {
         /// <summary>
         /// Gets or sets the ID of the resource.
