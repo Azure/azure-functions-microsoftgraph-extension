@@ -3,10 +3,8 @@
 
 namespace TokenBinding
 {
-    using Microsoft.Azure.WebJobs.Host;
     using System;
     using System.Threading.Tasks;
-    using static TokenBinding.EasyAuthTokenClient;
 
     /// <summary>
     /// Class representing an application's [EasyAuth] Token Store
@@ -37,8 +35,8 @@ namespace TokenBinding
         {
             EasyAuthTokenStoreEntry tokenStoreEntry = await _client.GetTokenStoreEntry(attribute);
 
-            bool isTokenValid = IsTokenValid(tokenStoreEntry.access_token);
-            bool isTokenExpired = tokenStoreEntry.expires_on <= DateTime.UtcNow.AddMinutes(GraphTokenBufferInMinutes);
+            bool isTokenValid = IsTokenValid(tokenStoreEntry.AccessToken);
+            bool isTokenExpired = tokenStoreEntry.ExpiresOn <= DateTime.UtcNow.AddMinutes(GraphTokenBufferInMinutes);
             bool isRefreshable = IsRefreshableProvider(attribute.IdentityProvider);
 
             if (isRefreshable && (isTokenExpired || !isTokenValid))
@@ -49,7 +47,7 @@ namespace TokenBinding
                 tokenStoreEntry = await _client.GetTokenStoreEntry(attribute);
             }
 
-            return tokenStoreEntry.access_token;
+            return tokenStoreEntry.AccessToken;
         }
 
         private static bool IsTokenValid(string token)

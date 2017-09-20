@@ -1,6 +1,8 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("Microsoft.Azure.WebJobs.Extensions.Token.Tests")]
 namespace TokenBinding
 {
     using System;
@@ -22,40 +24,51 @@ namespace TokenBinding
         // Useful for binding to additional inputs
         private FluentBindingRule<TokenAttribute> TokenRule { get; set; }
 
-        public EasyAuthClientFactory EasyAuthClientFactory {
-            get
-            {
-                return _easyAuthClientFactory;
-            }
-
-            set
-            {
-                _easyAuthClientFactory = value;
-            }
-        }
-
-        public AadClientFactory AadClientFactory
+        internal IEasyAuthClient EasyAuthClient
         {
             get
             {
-                return _aadClientFactory;
+                if (_easyAuthClient == null)
+                {
+                    string hostname = _appSettings.Resolve(Constants.AppSettingWebsiteHostname);
+                    string signingKey = _appSettings.Resolve(Constants.AppSettingWebsiteAuthSigningKey);
+                    _easyAuthClient = new EasyAuthTokenClient(hostname, signingKey, _log);
+                }
+                return _easyAuthClient;
             }
 
             set
             {
-                _aadClientFactory = value;
+                _easyAuthClient = value;
             }
         }
 
-        public INameResolver AppSettings { get; set; }
-
-        private EasyAuthClientFactory _easyAuthClientFactory = new EasyAuthClientFactory();
-
-        private AadClientFactory _aadClientFactory = new AadClientFactory();
+        internal IAadClient AadClient
+        {
+            get
+            {
+                if (_aadManager == null)
+                {
+                    string clientId = _appSettings.Resolve(Constants.AppSettingClientIdName);
+                    string clientSecret = _appSettings.Resolve(Constants.AppSettingClientSecretName);
+                    _aadManager = new AadClient(new ClientCredential(clientId, clientSecret));
+                }
+                return _aadManager;
+            }
+            set
+            {
+                _aadManager = value;
+            }
+        }
 
         internal TraceWriter _log;
 
+        private INameResolver _appSettings;
+
         private IAadClient _aadManager;
+
+        private IEasyAuthClient _easyAuthClient;
+
 
         /// <summary>
         /// Retrieve audience from raw JWT
@@ -69,24 +82,6 @@ namespace TokenBinding
             return audience;
         }
 
-        public IAadClient GetAadClient()
-        {
-            if (_aadManager == null)
-            {
-                string clientId = AppSettings.Resolve(Constants.AppSettingClientIdName);
-                string clientSecret = AppSettings.Resolve(Constants.AppSettingClientSecretName);
-                _aadManager = AadClientFactory.GetClient(new ClientCredential(clientId, clientSecret));
-            }
-            return _aadManager;
-        }
-
-        private IEasyAuthClient GetEasyAuthTokenClient()
-        {
-            string hostname = AppSettings.Resolve(Constants.AppSettingWebsiteHostname);
-            string signingKey = AppSettings.Resolve(Constants.AppSettingWebsiteAuthSigningKey);
-            return EasyAuthClientFactory.GetClient(hostname, signingKey, _log);
-        }
-
         /// <summary>
         /// Initialize the binding extension
         /// </summary>
@@ -98,7 +93,7 @@ namespace TokenBinding
             // Set up logging
             _log = context.Trace;
 
-            AppSettings = AppSettings ?? config.NameResolver;
+            _appSettings = config.NameResolver;
         }
 
         public void Initialize(ExtensionConfigContext context)
@@ -122,12 +117,12 @@ namespace TokenBinding
                 case IdentityMode.UserFromId:
                     // If the attribute has no identity provider, assume AAD
                     attribute.IdentityProvider = attribute.IdentityProvider ?? "AAD";
-                    var easyAuthTokenManager = new EasyAuthTokenManager(GetEasyAuthTokenClient());
+                    var easyAuthTokenManager = new EasyAuthTokenManager(EasyAuthClient);
                     return await easyAuthTokenManager.GetEasyAuthAccessTokenAsync(attribute);
                 case IdentityMode.UserFromToken:
                     return await GetAuthTokenFromUserToken(attribute.UserToken, attribute.Resource);
                 case IdentityMode.ClientCredentials:
-                    return await GetAadClient().GetTokenFromClientCredentials(attribute.Resource);
+                    return await AadClient.GetTokenFromClientCredentials(attribute.Resource);
             }
 
             throw new InvalidOperationException("Unable to authorize without Principal ID or ID Token.");
@@ -144,7 +139,7 @@ namespace TokenBinding
             var currentAudience = GetAudience(userToken);
             if (currentAudience != resource)
             {
-                string token = await GetAadClient().GetTokenOnBehalfOfUserAsync(
+                string token = await AadClient.GetTokenOnBehalfOfUserAsync(
                     userToken,
                     resource);
                 return token;

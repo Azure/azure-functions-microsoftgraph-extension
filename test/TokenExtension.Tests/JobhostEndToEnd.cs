@@ -11,11 +11,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
     using TokenBinding;
     using Xunit;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Security.Claims;
-    using Microsoft.Azure.WebJobs.Host;
-    using System.Reflection;
-    using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
     public class JobhostEndToEnd
     {
@@ -41,20 +37,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         {
             var currentToken = BuildTokenEntry(DateTime.UtcNow.AddDays(1));
             var config = new TokenExtensionConfig();
-            var clientFactory = new FakeEasyAuthClientFactory();
-            clientFactory.AddResponseInSequence(currentToken);
-            config.EasyAuthClientFactory = clientFactory;
+            var mockClient = GetEasyAuthClientMock(currentToken);
+            config.EasyAuthClient = mockClient.Object;
 
             var args = new Dictionary<string, object>
             {
                 {"token", "dummyValue" },
             };
-            var methodInfo = typeof(TokenFunctions).GetMethods().Where(info => info.Name == "FromId").First();
             JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
+            await host.CallAsync("TokenFunctions.FromId", args);
 
-            await host.CallAsync(methodInfo, args);
-
-            var expectedResult = currentToken.access_token;
+            var expectedResult = currentToken.AccessToken;
             Assert.Equal(expectedResult, finalTokenValue);
             ResetState();
         }
@@ -66,23 +59,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             var refreshedToken = BuildTokenEntry(DateTime.UtcNow.AddDays(1));
 
             var config = new TokenExtensionConfig();
-            var clientFactory = new FakeEasyAuthClientFactory();
-            clientFactory.AddResponseInSequence(expiredToken);
-            clientFactory.AddResponseInSequence(refreshedToken);
-            config.EasyAuthClientFactory = clientFactory;
+            var mockClient = GetEasyAuthClientMock(expiredToken, refreshedToken);
+            config.EasyAuthClient = mockClient.Object;
 
             var args = new Dictionary<string, object>
             {
                 {"token", "dummyValue" },
             };
-            var methodInfo = GetMethodInfo("FromId");
             JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
+            await host.CallAsync("TokenFunctions.FromId", args);
 
-            await host.CallAsync(methodInfo, args);
-
-            var expectedResult = refreshedToken.access_token;
+            var expectedResult = refreshedToken.AccessToken;
             Assert.Equal(expectedResult, finalTokenValue);
-            clientFactory.GetMock().Verify(client => client.RefreshToken(It.IsAny<TokenAttribute>()), Times.AtLeastOnce());
+            mockClient.Verify(client => client.RefreshToken(It.IsAny<TokenAttribute>()), Times.AtLeastOnce());
             ResetState();
         }
 
@@ -90,72 +79,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         public static async Task FromUserToken_CredentialsValid_GetToken()
         {
             var config = new TokenExtensionConfig();
-            var clientFactory = new FakeAadClientFactory();
-            config.AadClientFactory = clientFactory;
-
-            var nameResolver = new Mock<INameResolver>();
-            nameResolver.Setup(x => x.Resolve(Constants.AppSettingClientIdName)).Returns("dummy");
-            nameResolver.Setup(x => x.Resolve(Constants.AppSettingClientSecretName)).Returns("value");
-            config.AppSettings = nameResolver.Object;
+            var mockClient = GetAadClientMock();
+            config.AadClient = mockClient.Object;
 
             var args = new Dictionary<string, object>
             {
                 {"token", SampleUserToken },
             };
-            var methodInfo = GetMethodInfo("FromUserToken");
             JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
-            await host.CallAsync(methodInfo, args);
+            await host.CallAsync("TokenFunctions.FromUserToken", args);
 
             var expectedResult = AccessTokenFromUserToken;
             Assert.Equal(expectedResult, finalTokenValue);
-            clientFactory.GetMock().Verify(client => client.GetTokenOnBehalfOfUserAsync(SampleUserToken, GraphResource), Times.Exactly(1));
-            ResetState();
-        }
-
-
-        [Fact]
-        public static async Task UsesAad_MissingClientIdAppSetting_ThrowException()
-        {
-            var config = new TokenExtensionConfig();
-            var clientFactory = new FakeAadClientFactory();
-            config.AadClientFactory = clientFactory;
-
-            var nameResolver = new Mock<INameResolver>();
-            nameResolver.Setup(x => x.Resolve(Constants.AppSettingClientIdName)).Returns<string>(null);
-            nameResolver.Setup(x => x.Resolve(Constants.AppSettingClientSecretName)).Returns("value");
-            config.AppSettings = nameResolver.Object;
-
-            var args = new Dictionary<string, object>
-            {
-                {"token", SampleUserToken },
-            };
-            var methodInfo = GetMethodInfo("FromUserToken");
-            JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
-
-            await Assert.ThrowsAnyAsync<Exception>(() => host.CallAsync(methodInfo, args));
-            ResetState();
-        }
-
-        [Fact]
-        public static async Task UsesAad_MissingClientSecretAppSetting_ThrowException()
-        {
-            var config = new TokenExtensionConfig();
-            var clientFactory = new FakeAadClientFactory();
-            config.AadClientFactory = clientFactory;
-
-            var nameResolver = new Mock<INameResolver>();
-            nameResolver.Setup(x => x.Resolve(Constants.AppSettingClientIdName)).Returns("dummy");
-            nameResolver.Setup(x => x.Resolve(Constants.AppSettingClientSecretName)).Returns<string>(null);
-            config.AppSettings = nameResolver.Object;
-
-            var args = new Dictionary<string, object>
-            {
-                {"token", SampleUserToken },
-            };
-            var methodInfo = GetMethodInfo("FromUserToken");
-            JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
-
-            await Assert.ThrowsAnyAsync<Exception>(() => host.CallAsync(methodInfo, args));
+            mockClient.Verify(client => client.GetTokenOnBehalfOfUserAsync(SampleUserToken, GraphResource), Times.Exactly(1));
             ResetState();
         }
 
@@ -163,25 +99,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         public static async Task FromClientCredentials_CredentialsValid_GetToken()
         {
             var config = new TokenExtensionConfig();
-            var clientFactory = new FakeAadClientFactory();
-            config.AadClientFactory = clientFactory;
-
-            var nameResolver = new Mock<INameResolver>();
-            nameResolver.Setup(x => x.Resolve(Constants.AppSettingClientIdName)).Returns("dummy");
-            nameResolver.Setup(x => x.Resolve(Constants.AppSettingClientSecretName)).Returns("value");
-            config.AppSettings = nameResolver.Object;
+            var mockClient = GetAadClientMock();
+            config.AadClient = mockClient.Object;
 
             var args = new Dictionary<string, object>
             {
                 { "token", SampleUserToken },
             };
-            var methodInfo = GetMethodInfo("ClientCredentials");
             JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
-            await host.CallAsync(methodInfo, args);
+            await host.CallAsync("TokenFunctions.ClientCredentials", args);
 
             var expectedResult = AccessTokenFromClientCredentials;
             Assert.Equal(expectedResult, finalTokenValue);
-            clientFactory.GetMock().Verify(client => client.GetTokenFromClientCredentials(GraphResource), Times.Exactly(1));
+            mockClient.Verify(client => client.GetTokenFromClientCredentials(GraphResource), Times.Exactly(1));
             ResetState();
         }
 
@@ -190,12 +120,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             finalTokenValue = null;
         }
 
-        private static MethodInfo GetMethodInfo(string name)
-        {
-            return typeof(TokenFunctions).GetMethods().Where(info => info.Name == name).First();
-        }
-
-        private static EasyAuthTokenClient.EasyAuthTokenStoreEntry BuildTokenEntry(DateTime expiration)
+        private static EasyAuthTokenStoreEntry BuildTokenEntry(DateTime expiration)
         {
             ClaimsIdentity identity = new ClaimsIdentity();
             identity.AddClaim(new Claim(ClaimTypes.Name, "Sample"));
@@ -209,64 +134,30 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 SigningCredentials = new EasyAuthTokenClient.HmacSigningCredentials(SigningKey),
             };
             string accessToken = jwtHandler.CreateJwtSecurityToken(descr).RawEncryptedKey;
-            return new EasyAuthTokenClient.EasyAuthTokenStoreEntry()
+            return new EasyAuthTokenStoreEntry()
             {
-                access_token = accessToken,
-                expires_on = expiration,
+                AccessToken = accessToken,
+                ExpiresOn = expiration,
             };
         }
 
-        private class FakeEasyAuthClientFactory : EasyAuthClientFactory
+        private static Mock<IEasyAuthClient> GetEasyAuthClientMock(params EasyAuthTokenStoreEntry[] responsesInOrder)
         {
-            Mock<IEasyAuthClient> _clientMock;
-            Queue<EasyAuthTokenClient.EasyAuthTokenStoreEntry> _responses;
-
-            public FakeEasyAuthClientFactory()
-            {
-                _clientMock = new Mock<IEasyAuthClient>();
-                _responses = new Queue<EasyAuthTokenClient.EasyAuthTokenStoreEntry>();
-            }
-
-            internal void AddResponseInSequence(EasyAuthTokenClient.EasyAuthTokenStoreEntry tokenEntry)
-            {
-                _responses.Enqueue(tokenEntry);
-            }
-
-            internal Mock<IEasyAuthClient> GetMock()
-            {
-                return _clientMock;
-            }
-
-            public override IEasyAuthClient GetClient(string hostName, string signingKey, TraceWriter log)
-            {
-                _clientMock.Setup(client => client.GetTokenStoreEntry(It.IsAny<TokenAttribute>()))
-                        .Returns(Task.FromResult(_responses.Dequeue()));
-                return _clientMock.Object;
-            }
+            var clientMock = new Mock<IEasyAuthClient>();
+            var responseQueue = new Queue<EasyAuthTokenStoreEntry>(responsesInOrder);
+            clientMock.Setup(client => client.GetTokenStoreEntry(It.IsAny<TokenAttribute>()))
+                .Returns(Task.FromResult(responseQueue.Dequeue()));
+            return clientMock;
         }
 
-        private class FakeAadClientFactory : AadClientFactory
+        private static Mock<IAadClient> GetAadClientMock()
         {
-            Mock<IAadClient> _clientMock;
-
-            public FakeAadClientFactory()
-            {
-                _clientMock = new Mock<IAadClient>();
-                _clientMock.Setup(client => client.GetTokenFromClientCredentials(It.IsAny<string>()))
-                    .Returns(Task.FromResult(AccessTokenFromClientCredentials));
-                _clientMock.Setup(client => client.GetTokenOnBehalfOfUserAsync(It.IsAny<string>(), It.IsAny<string>()))
-                    .Returns(Task.FromResult(AccessTokenFromUserToken));
-            }
-
-            public override IAadClient GetClient(ClientCredential credentials)
-            {
-                return _clientMock.Object;
-            }
-
-            public Mock<IAadClient> GetMock()
-            {
-                return _clientMock;
-            }
+            var clientMock = new Mock<IAadClient>();
+            clientMock.Setup(client => client.GetTokenFromClientCredentials(It.IsAny<string>()))
+                .Returns(Task.FromResult(AccessTokenFromClientCredentials));
+            clientMock.Setup(client => client.GetTokenOnBehalfOfUserAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(Task.FromResult(AccessTokenFromUserToken));
+            return clientMock;
         }
 
         private class TokenFunctions
