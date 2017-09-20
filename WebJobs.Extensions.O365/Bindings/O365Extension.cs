@@ -394,7 +394,6 @@ namespace Microsoft.Azure.WebJobs.Extensions
         /// Used for input bindings; Attribute -> Input type
         /// </summary>
         public class Converters :
-            IAsyncConverter<TokenAttribute, GraphServiceClient>,
             IAsyncConverter<ExcelAttribute, string[][]>,
             IAsyncConverter<ExcelAttribute, WorkbookTable>,
             IAsyncConverter<OneDriveAttribute, byte[]>,
@@ -432,11 +431,6 @@ namespace Microsoft.Azure.WebJobs.Extensions
             public IAsyncCollector<string> CreateCollector(GraphWebhookSubscriptionAttribute attr)
             {
                 return new GraphWebhookSubscriptionAsyncCollector(_parent, attr);
-            }
-
-            async Task<GraphServiceClient> IAsyncConverter<TokenAttribute, GraphServiceClient>.ConvertAsync(TokenAttribute attr, CancellationToken cancellationToken)
-            {
-                return await _parent.GetMSGraphClientAsync(attr);
             }
 
             async Task<string[][]> IAsyncConverter<ExcelAttribute, string[][]>.ConvertAsync(ExcelAttribute attr, CancellationToken cancellationToken)
