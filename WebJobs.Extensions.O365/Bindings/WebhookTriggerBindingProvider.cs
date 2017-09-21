@@ -3,6 +3,12 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Net.Http;
+    using System.Reflection;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Host.Bindings;
     using Microsoft.Azure.WebJobs.Host.Executors;
     using Microsoft.Azure.WebJobs.Host.Listeners;
@@ -10,12 +16,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using Microsoft.Azure.WebJobs.Host.Triggers;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
-    using System;
-    using System.Collections.Generic;
-    using System.Net.Http;
-    using System.Reflection;
-    using System.Threading;
-    using System.Threading.Tasks;
 
     internal class WebhookTriggerBindingProvider :
          ITriggerBindingProvider

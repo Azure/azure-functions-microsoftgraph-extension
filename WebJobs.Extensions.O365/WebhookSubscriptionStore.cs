@@ -3,15 +3,15 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Graph;
     using Newtonsoft.Json;
     using File = System.IO.File;
-    using System.Collections.Concurrent;
-    using System;
-    using System.Collections.Generic;
 
     /// <summary>
     /// Store mapping from webhook subscription IDs to a token.

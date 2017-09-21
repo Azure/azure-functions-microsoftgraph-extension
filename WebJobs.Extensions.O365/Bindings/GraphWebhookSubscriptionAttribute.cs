@@ -3,9 +3,8 @@
 
 namespace Microsoft.Azure.WebJobs
 {
-    using Microsoft.Azure.WebJobs.Description;
-    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
     using System;
+    using Microsoft.Azure.WebJobs.Description;
 
     // This is used to retrieve the locally stored subscriptions
     [Binding]

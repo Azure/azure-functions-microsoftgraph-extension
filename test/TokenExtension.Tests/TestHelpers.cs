@@ -3,9 +3,9 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 {
+    using System;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
-    using System;
 
     public class TestHelpers
     {

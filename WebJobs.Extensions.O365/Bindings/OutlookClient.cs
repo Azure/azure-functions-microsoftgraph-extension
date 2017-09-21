@@ -3,11 +3,11 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
-    using Microsoft.Graph;
-    using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.Graph;
+    using Newtonsoft.Json.Linq;
 
     internal static class OutlookClient
     {

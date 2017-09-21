@@ -3,8 +3,6 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -13,6 +11,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Text;
     using System.Threading.Tasks;
     using System.Web;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
 
     // Handles the subscription validation and notification payloads
     internal class GraphWebhookSubscriptionHandler

@@ -5,10 +5,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Graph;
-    using System.Linq;
 
     /// <summary>
     /// Collector class used to accumulate client states and create new subscriptions and cache them

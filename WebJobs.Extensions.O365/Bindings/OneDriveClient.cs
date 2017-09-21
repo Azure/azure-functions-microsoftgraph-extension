@@ -3,10 +3,10 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
-    using Microsoft.Graph;
-    using Newtonsoft.Json;
     using System.IO;
     using System.Threading.Tasks;
+    using Microsoft.Graph;
+    using Newtonsoft.Json;
 
     /// <summary>
     /// Helper class for calling onto (MS) OneDrive Graph

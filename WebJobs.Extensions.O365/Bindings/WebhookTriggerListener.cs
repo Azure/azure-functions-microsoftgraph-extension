@@ -3,10 +3,10 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
-    using Microsoft.Azure.WebJobs.Host.Executors;
-    using Microsoft.Azure.WebJobs.Host.Listeners;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs.Host.Executors;
+    using Microsoft.Azure.WebJobs.Host.Listeners;
 
     // Per-function.
     // The listener is "passive". It just tracks the context invoker used for calling functions.

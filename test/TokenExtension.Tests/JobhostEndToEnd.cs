@@ -3,14 +3,14 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 {
-    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
-    using Microsoft.IdentityModel.Tokens;
-    using Moq;
     using System;
     using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
     using System.Security.Claims;
     using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.IdentityModel.Tokens;
+    using Moq;
     using Xunit;
 
     public class JobhostEndToEnd

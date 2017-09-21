@@ -3,13 +3,6 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
-    using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
-    using Microsoft.Azure.WebJobs.Host;
-    using Microsoft.Azure.WebJobs.Host.Bindings;
-    using Microsoft.Azure.WebJobs.Host.Config;
-    using Microsoft.Graph;
-    using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -21,6 +14,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Azure.WebJobs.Host;
+    using Microsoft.Azure.WebJobs.Host.Bindings;
+    using Microsoft.Azure.WebJobs.Host.Config;
+    using Microsoft.Graph;
+    using Newtonsoft.Json.Linq;
 
     /// <summary>
     /// WebJobs SDK Extension for O365 Token binding.
