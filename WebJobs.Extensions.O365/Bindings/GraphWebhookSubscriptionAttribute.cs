@@ -5,7 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
 {
     using Microsoft.Azure.WebJobs.Description;
     using System;
-    using TokenBinding;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
 
     // This is used to retrieve the locally stored subscriptions
     [Binding]

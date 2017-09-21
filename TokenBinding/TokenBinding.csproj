@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <AssemblyName>Microsoft.Azure.WebJobs.Extensions.Tokens</AssemblyName>
-    <RootNamespace>TokenBinding</RootNamespace>
+    <RootNamespace>Microsoft.Azure.WebJobs.Extensions.AuthTokens</RootNamespace>
 
 
     <PackageId>Microsoft.Azure.WebJobs.Extensions.AuthTokens</PackageId>

@@ -21,12 +21,12 @@ namespace Microsoft.Azure.WebJobs.Extensions
     using Microsoft.Azure.WebJobs.Host.Config;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
-    using TokenBinding;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
 
     /// <summary>
     /// WebJobs SDK Extension for O365 Token binding.
     /// </summary>
-    public class O365Extension : IExtensionConfigProvider,
+    public class MicrosoftGraphExtensionConfig : IExtensionConfigProvider,
         IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
         /// <summary>
@@ -34,7 +34,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
         /// </summary>
         private ConcurrentDictionary<string, CachedClient> clients = new ConcurrentDictionary<string, CachedClient>();
 
-        private TokenExtensionConfig tokenExtension;
+        private AuthTokenExtensionConfig tokenExtension;
 
         // Cache for communicating tokens across webhooks
         internal WebhookSubscriptionStore subscriptionStore;
@@ -63,8 +63,8 @@ namespace Microsoft.Azure.WebJobs.Extensions
             this.appSettings = config.NameResolver;
 
             // Set up token extension; handles auth (only providers supported by Easy Auth)
-            this.tokenExtension = new TokenExtensionConfig();
-            this.tokenExtension.Initialize2(context);
+            this.tokenExtension = new AuthTokenExtensionConfig();
+            this.tokenExtension.InitializeAllExceptRules(context);
             //config.AddExtension(this.tokenExtension);
 
             // Set up logging
@@ -358,13 +358,13 @@ namespace Microsoft.Azure.WebJobs.Extensions
         public class POCOConverter<T> : IAsyncConverter<ExcelAttribute, T[]>, IAsyncConverter<ExcelAttribute, List<T>>
             where T : new()
         {
-            private readonly O365Extension parent;
+            private readonly MicrosoftGraphExtensionConfig parent;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="POCOConverter{T}"/> class.
             /// </summary>
             /// <param name="parent">O365Extension to which the result of the request for data will be returned</param>
-            public POCOConverter(O365Extension parent)
+            public POCOConverter(MicrosoftGraphExtensionConfig parent)
             {
                 this.parent = parent;
             }
@@ -403,9 +403,9 @@ namespace Microsoft.Azure.WebJobs.Extensions
             IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>,
             IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>
         {
-            private readonly O365Extension _parent;
+            private readonly MicrosoftGraphExtensionConfig _parent;
 
-            public Converters(O365Extension parent)
+            public Converters(MicrosoftGraphExtensionConfig parent)
             {
                 _parent = parent;
             }

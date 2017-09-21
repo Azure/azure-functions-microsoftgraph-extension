@@ -3,7 +3,7 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Microsoft.Azure.WebJobs.Extensions.Token.Tests")]
-namespace TokenBinding
+namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using System;
     using System.Runtime.Serialization;

@@ -1,25 +1,12 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace TokenBinding
+namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Description;
     using System;
 
-    // Requires that a AAD clientId/clientSecret are set. These are from EasyAuth. 
-    // Resource - gets the audience/scopes. (appId
-    // Modes:
-    //    1. From Request - get idToken from request (X-MS-TOKEN-AAD-ID-TOKEN in EA) 
-    //        Set: User="Auth" 
-    //    2. From EA TokenStore (previously logged in) 
-    //        Uses refresh flow
-    //        Set UserId = id. 
-
-    /// <summary>
-    /// Bind to an AAD token.
-    /// Also serves as a base-class for other AAD-bindings.
-    /// </summary>
     [Binding]
     public class TokenAttribute : Attribute
     {

@@ -18,9 +18,9 @@ namespace Microsoft.Azure.WebJobs.Extensions
     // Handles the subscription validation and notification payloads
     internal class GraphWebhookSubscriptionHandler
     {
-        private readonly O365Extension _extension; // already has token
+        private readonly MicrosoftGraphExtensionConfig _extension; // already has token
 
-        public GraphWebhookSubscriptionHandler(O365Extension extension)
+        public GraphWebhookSubscriptionHandler(MicrosoftGraphExtensionConfig extension)
         {
             _extension = extension;
         }

@@ -3,7 +3,7 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Microsoft.Azure.WebJobs.Extensions.Token.Tests")]
-namespace TokenBinding
+namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using System;
     using System.IdentityModel.Tokens.Jwt;
@@ -18,7 +18,7 @@ namespace TokenBinding
     /// <summary>
     /// WebJobs SDK Extension for Token binding.
     /// </summary>
-    public class TokenExtensionConfig : IExtensionConfigProvider
+    public class AuthTokenExtensionConfig : IExtensionConfigProvider
     {
         // Useful for binding to additional inputs
         private FluentBindingRule<TokenAttribute> TokenRule { get; set; }
@@ -74,7 +74,7 @@ namespace TokenBinding
         /// </summary>
         /// <param name="rawToken">JWT</param>
         /// <returns>Token audience</returns>
-        public static string GetAudience(string rawToken)
+        private static string GetAudience(string rawToken)
         {
             var jwt = new JwtSecurityToken(rawToken);
             var audience = jwt.Audiences.FirstOrDefault();
@@ -85,7 +85,7 @@ namespace TokenBinding
         /// Initialize the binding extension
         /// </summary>
         /// <param name="context">Context for extension</param>
-        public void Initialize2(ExtensionConfigContext context)
+        public void InitializeAllExceptRules(ExtensionConfigContext context)
         {
             var config = context.Config;
 
@@ -97,7 +97,7 @@ namespace TokenBinding
 
         public void Initialize(ExtensionConfigContext context)
         {
-            Initialize2(context);
+            InitializeAllExceptRules(context);
             var converter = new Converters(this);
             this.TokenRule = context.AddBindingRule<TokenAttribute>();
             this.TokenRule.BindToInput<string>(converter);
@@ -156,13 +156,13 @@ namespace TokenBinding
         public class Converters :
             IAsyncConverter<TokenAttribute, string>
         {
-            private readonly TokenExtensionConfig _parent;
+            private readonly AuthTokenExtensionConfig _parent;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="Converters"/> class.
             /// </summary>
             /// <param name="parent">TokenExtensionConfig containing necessary context & methods</param>
-            public Converters(TokenExtensionConfig parent)
+            public Converters(AuthTokenExtensionConfig parent)
             {
                 this._parent = parent;
             }

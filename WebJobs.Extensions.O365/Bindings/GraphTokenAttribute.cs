@@ -4,7 +4,7 @@
 namespace Microsoft.Azure.WebJobs.Extensions.Bindings
 {
     using Microsoft.Azure.WebJobs.Description;
-    using TokenBinding;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
 
     /// <summary>
     /// Abstract attribute to be base class for all Graph-based binding attributes

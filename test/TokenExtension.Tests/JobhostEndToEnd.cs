@@ -8,7 +8,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
     using System.Threading.Tasks;
     using Microsoft.IdentityModel.Tokens;
     using Moq;
-    using TokenBinding;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
     using Xunit;
     using System.Collections.Generic;
     using System.Security.Claims;
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         public static async Task FromId_TokenStillValid_GetStoredToken()
         {
             var currentToken = BuildTokenEntry(DateTime.UtcNow.AddDays(1));
-            var config = new TokenExtensionConfig();
+            var config = new AuthTokenExtensionConfig();
             var mockClient = GetEasyAuthClientMock(currentToken);
             config.EasyAuthClient = mockClient.Object;
 
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             var expiredToken = BuildTokenEntry(DateTime.UtcNow.AddSeconds(-60));
             var refreshedToken = BuildTokenEntry(DateTime.UtcNow.AddDays(1));
 
-            var config = new TokenExtensionConfig();
+            var config = new AuthTokenExtensionConfig();
             var mockClient = GetEasyAuthClientMock(expiredToken, refreshedToken);
             config.EasyAuthClient = mockClient.Object;
 
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task FromUserToken_CredentialsValid_GetToken()
         {
-            var config = new TokenExtensionConfig();
+            var config = new AuthTokenExtensionConfig();
             var mockClient = GetAadClientMock();
             config.AadClient = mockClient.Object;
 
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task FromClientCredentials_CredentialsValid_GetToken()
         {
-            var config = new TokenExtensionConfig();
+            var config = new AuthTokenExtensionConfig();
             var mockClient = GetAadClientMock();
             config.AadClient = mockClient.Object;
 

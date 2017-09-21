@@ -15,7 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
     /// </summary>
     internal class GraphWebhookSubscriptionAsyncCollector : IAsyncCollector<string>
     {
-        private readonly O365Extension _extension; // already has token
+        private readonly MicrosoftGraphExtensionConfig _extension; // already has token
 
         // User attribute that we're bound against.
         // Has key properties (e.g. what resource we're listening to)
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
 
         private List<string> _values;
 
-        public GraphWebhookSubscriptionAsyncCollector(O365Extension extension, GraphWebhookSubscriptionAttribute attribute)
+        public GraphWebhookSubscriptionAsyncCollector(MicrosoftGraphExtensionConfig extension, GraphWebhookSubscriptionAttribute attribute)
         {
             _extension = extension;
             _attribute = attribute;

@@ -1,12 +1,12 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace TokenBinding
+namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     /// <summary>
     /// List of constants needed by token binding
     /// </summary>
-    public static class Constants
+    internal static class Constants
     {
         /// <summary>
         /// Application setting key for the client ID
