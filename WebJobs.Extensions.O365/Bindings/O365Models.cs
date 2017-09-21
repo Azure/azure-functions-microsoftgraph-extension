@@ -1,7 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.Collections.Generic;
@@ -14,27 +14,6 @@ namespace Microsoft.Azure.WebJobs.Extensions
     internal class CachedClient {
         internal GraphServiceClient client;
         internal int expirationDate;
-    }
-
-    /// <summary>
-    /// Enum of changes that can be subscribed to
-    /// </summary>
-    public enum ChangeType
-    {
-        /// <summary>
-        /// Webhook activated when a new item of the subscribed resource is CREATED
-        /// </summary>
-        Created,
-
-        /// <summary>
-        /// Webhook activated when a new item of the subscribed resource is UPDATED
-        /// </summary>
-        Updated,
-
-        /// <summary>
-        /// Webhook activated when a new item of the subscribed resource is DELETED
-        /// </summary>
-        Deleted,
     }
 
     /// <summary>
@@ -128,17 +107,17 @@ namespace Microsoft.Azure.WebJobs.Extensions
     /// <summary>
     /// Helper class for change types
     /// </summary>
-    public class ChangeTypeExtension
+    internal class ChangeTypeExtension
     {
         /// <summary>
         /// Convert an array of ChangeTypes to a Microsoft Graph-friendly list
         /// </summary>
         /// <param name="array">Array of change types</param>
         /// <returns>lowercase array of strings representing the change types</returns>
-        public static string ConvertArrayToString(ChangeType[] array)
+        public static string ConvertArrayToString(GraphWebhookChangeType[] array)
         {
             List<string> result = new List<string>();
-            foreach (ChangeType ct in array)
+            foreach (GraphWebhookChangeType ct in array)
             {
                 result.Add(ct.ToString().ToLower());
             }

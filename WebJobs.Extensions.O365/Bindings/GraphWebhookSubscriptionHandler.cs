@@ -1,8 +1,10 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -11,9 +13,6 @@ namespace Microsoft.Azure.WebJobs.Extensions
     using System.Text;
     using System.Threading.Tasks;
     using System.Web;
-    using Microsoft.Azure.WebJobs.Extensions.Bindings;
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
 
     // Handles the subscription validation and notification payloads
     internal class GraphWebhookSubscriptionHandler

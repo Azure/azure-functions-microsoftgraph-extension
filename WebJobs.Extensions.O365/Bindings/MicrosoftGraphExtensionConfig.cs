@@ -1,8 +1,15 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
+    using Microsoft.Azure.WebJobs;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Azure.WebJobs.Host;
+    using Microsoft.Azure.WebJobs.Host.Bindings;
+    using Microsoft.Azure.WebJobs.Host.Config;
+    using Microsoft.Graph;
+    using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -14,14 +21,6 @@ namespace Microsoft.Azure.WebJobs.Extensions
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Extensions.Bindings;
-    using Microsoft.Azure.WebJobs.Host;
-    using Microsoft.Azure.WebJobs.Host.Bindings;
-    using Microsoft.Azure.WebJobs.Host.Config;
-    using Microsoft.Graph;
-    using Newtonsoft.Json.Linq;
-    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
 
     /// <summary>
     /// WebJobs SDK Extension for O365 Token binding.
@@ -205,7 +204,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
             {
                 UserId = userId,
                 Resource = O365Constants.GraphBaseUrl,
-                Identity = IdentityMode.UserFromId,
+                Identity = TokenIdentityMode.UserFromId,
             };
 
             return await this.GetMSGraphClientAsync(attr);
@@ -493,19 +492,20 @@ namespace Microsoft.Azure.WebJobs.Extensions
             private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphWebhookSubscriptionAttribute attribute)
             {
                 IEnumerable<WebhookSubscriptionStore.SubscriptionEntry> subscriptionEntries = await _parent.subscriptionStore.GetAllSubscriptionsAsync();
-                if (string.Equals(attribute.Filter, "userFromRequest"))
+                if (TokenIdentityMode.UserFromRequest.ToString().Equals(attribute.Filter, StringComparison.OrdinalIgnoreCase))
                 {
                     var dummyTokenAttribute = new TokenAttribute()
                     {
                         Resource = O365Constants.GraphBaseUrl,
-                        Identity = IdentityMode.UserFromToken,
+                        Identity = TokenIdentityMode.UserFromToken,
                         UserToken = attribute.UserToken,
                         IdentityProvider = "AAD",
                     };
                     var graph = await _parent.GetMSGraphClientAsync(dummyTokenAttribute);
                     var user = await graph.Me.Request().GetAsync();
                     subscriptionEntries = subscriptionEntries.Where(entry => entry.UserId.Equals(user.Id));
-                } else if (attribute.Filter != null)
+                }
+                else if (attribute.Filter != null)
                 {
                     throw new InvalidOperationException($"There is no filter for {attribute.Filter}");
                 }

@@ -1,11 +1,11 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions.Bindings
+namespace Microsoft.Azure.WebJobs
 {
     using Microsoft.Azure.WebJobs.Description;
-    using System;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using System;
 
     // This is used to retrieve the locally stored subscriptions
     [Binding]
@@ -16,16 +16,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
         /// <summary>
         /// Gets or sets the UserId to filter subscriptions on; Optional
         /// </summary>
-        public string Filter {
+        public string Filter
+        {
             get
             {
                 return _filter;
             }
             set
             {
-                if (string.Equals(value, "userFromRequest"))
+                if (TokenIdentityMode.UserFromRequest.ToString().Equals(value, StringComparison.OrdinalIgnoreCase))
                 {
-                    Identity = IdentityMode.UserFromRequest;   
+                    Identity = TokenIdentityMode.UserFromRequest;   
                 }
                 _filter = value;
             }
@@ -42,7 +43,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
         /// Gets or sets types of changes that we're subscribing to.
         /// This is specific to the resource
         /// </summary>
-        public ChangeType[] ChangeTypes { get; set; }
+        public GraphWebhookChangeType[] ChangeTypes { get; set; }
 
         public GraphWebhookSubscriptionAction Action { get; set; }
 
@@ -58,7 +59,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
 
                     if (ChangeTypes == null || ChangeTypes.Length == 0)
                     {
-                        ChangeTypes = new ChangeType[] { ChangeType.Created, ChangeType.Deleted, ChangeType.Updated };
+                        ChangeTypes = new GraphWebhookChangeType[] { GraphWebhookChangeType.Created, GraphWebhookChangeType.Deleted, GraphWebhookChangeType.Updated };
                     }
 
                     break;

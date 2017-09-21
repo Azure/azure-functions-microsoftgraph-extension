@@ -3,15 +3,15 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 {
-    using System;
-    using System.IdentityModel.Tokens.Jwt;
-    using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
     using Microsoft.IdentityModel.Tokens;
     using Moq;
-    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
-    using Xunit;
+    using System;
     using System.Collections.Generic;
+    using System.IdentityModel.Tokens.Jwt;
     using System.Security.Claims;
+    using System.Threading.Tasks;
+    using Xunit;
 
     public class JobhostEndToEnd
     {
@@ -166,7 +166,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 [Token(
                 UserId = "UserId",
                 IdentityProvider = "AAD",
-                Identity = IdentityMode.UserFromId,
+                Identity = TokenIdentityMode.UserFromId,
                 Resource = GraphResource)] string token)
             {
                 finalTokenValue = token;
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
             public void FromUserToken(
                 [Token(
-                Identity = IdentityMode.UserFromToken,
+                Identity = TokenIdentityMode.UserFromToken,
                 UserToken = SampleUserToken,
                 IdentityProvider = "AAD",
                 Resource = GraphResource)] string token)
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
             public void ClientCredentials(
                 [Token(
-                Identity = IdentityMode.ClientCredentials,
+                Identity = TokenIdentityMode.ClientCredentials,
                 UserToken = SampleUserToken,
                 IdentityProvider = "AAD",
                 Resource = GraphResource)] string token)

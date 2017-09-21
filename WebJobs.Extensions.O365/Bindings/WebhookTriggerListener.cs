@@ -1,12 +1,12 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions.Bindings
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
-    using System.Threading;
-    using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Host.Executors;
     using Microsoft.Azure.WebJobs.Host.Listeners;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     // Per-function.
     // The listener is "passive". It just tracks the context invoker used for calling functions.

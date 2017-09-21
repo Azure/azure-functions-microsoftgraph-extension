@@ -113,14 +113,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             attribute.CheckValidity();
             switch (attribute.Identity)
             {
-                case IdentityMode.UserFromId:
+                case TokenIdentityMode.UserFromId:
                     // If the attribute has no identity provider, assume AAD
                     attribute.IdentityProvider = attribute.IdentityProvider ?? "AAD";
                     var easyAuthTokenManager = new EasyAuthTokenManager(EasyAuthClient);
                     return await easyAuthTokenManager.GetEasyAuthAccessTokenAsync(attribute);
-                case IdentityMode.UserFromToken:
+                case TokenIdentityMode.UserFromToken:
                     return await GetAuthTokenFromUserToken(attribute.UserToken, attribute.Resource);
-                case IdentityMode.ClientCredentials:
+                case TokenIdentityMode.ClientCredentials:
                     return await AadClient.GetTokenFromClientCredentials(attribute.Resource);
             }
 
