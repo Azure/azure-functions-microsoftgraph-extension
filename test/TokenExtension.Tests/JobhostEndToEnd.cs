@@ -4,14 +4,14 @@
 namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
+    using System.Security.Claims;
     using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
     using Microsoft.IdentityModel.Tokens;
     using Moq;
-    using TokenBinding;
     using Xunit;
-    using System.Collections.Generic;
-    using System.Security.Claims;
 
     public class JobhostEndToEnd
     {
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         public static async Task FromId_TokenStillValid_GetStoredToken()
         {
             var currentToken = BuildTokenEntry(DateTime.UtcNow.AddDays(1));
-            var config = new TokenExtensionConfig();
+            var config = new AuthTokenExtensionConfig();
             var mockClient = GetEasyAuthClientMock(currentToken);
             config.EasyAuthClient = mockClient.Object;
 
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             var expiredToken = BuildTokenEntry(DateTime.UtcNow.AddSeconds(-60));
             var refreshedToken = BuildTokenEntry(DateTime.UtcNow.AddDays(1));
 
-            var config = new TokenExtensionConfig();
+            var config = new AuthTokenExtensionConfig();
             var mockClient = GetEasyAuthClientMock(expiredToken, refreshedToken);
             config.EasyAuthClient = mockClient.Object;
 
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task FromUserToken_CredentialsValid_GetToken()
         {
-            var config = new TokenExtensionConfig();
+            var config = new AuthTokenExtensionConfig();
             var mockClient = GetAadClientMock();
             config.AadClient = mockClient.Object;
 
@@ -98,7 +98,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task FromClientCredentials_CredentialsValid_GetToken()
         {
-            var config = new TokenExtensionConfig();
+            var config = new AuthTokenExtensionConfig();
             var mockClient = GetAadClientMock();
             config.AadClient = mockClient.Object;
 
@@ -166,7 +166,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 [Token(
                 UserId = "UserId",
                 IdentityProvider = "AAD",
-                Identity = IdentityMode.UserFromId,
+                Identity = TokenIdentityMode.UserFromId,
                 Resource = GraphResource)] string token)
             {
                 finalTokenValue = token;
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
             public void FromUserToken(
                 [Token(
-                Identity = IdentityMode.UserFromToken,
+                Identity = TokenIdentityMode.UserFromToken,
                 UserToken = SampleUserToken,
                 IdentityProvider = "AAD",
                 Resource = GraphResource)] string token)
@@ -184,7 +184,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
             public void ClientCredentials(
                 [Token(
-                Identity = IdentityMode.ClientCredentials,
+                Identity = TokenIdentityMode.ClientCredentials,
                 UserToken = SampleUserToken,
                 IdentityProvider = "AAD",
                 Resource = GraphResource)] string token)

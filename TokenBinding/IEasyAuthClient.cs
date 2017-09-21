@@ -3,7 +3,7 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
-namespace TokenBinding
+namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using System.Threading.Tasks;
 

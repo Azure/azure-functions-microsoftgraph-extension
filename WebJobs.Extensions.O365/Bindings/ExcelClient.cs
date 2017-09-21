@@ -1,7 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions.Bindings
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
     /// <summary>
     /// Helper for calling onto Excel (MS) Graph
     /// </summary>
-    public static class ExcelClient
+    internal static class ExcelClient
     {
         /// <summary>
         /// Conversion from object[][] to JArray, then set "values" of JObject

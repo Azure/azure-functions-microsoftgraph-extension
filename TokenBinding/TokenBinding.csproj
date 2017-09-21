@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <AssemblyName>TokenBinding</AssemblyName>
-    <RootNamespace>TokenBinding</RootNamespace>
+    <AssemblyName>Microsoft.Azure.WebJobs.Extensions.Tokens</AssemblyName>
+    <RootNamespace>Microsoft.Azure.WebJobs.Extensions.AuthTokens</RootNamespace>
 
 
-    <PackageId>Microsoft.Azure.WebJobs.Extension.AuthTokens</PackageId>
+    <PackageId>Microsoft.Azure.WebJobs.Extensions.AuthTokens</PackageId>
     <Description>This extension adds bindings for AuthTokens</Description>
     <Version>1.0.0-beta1$(VersionSuffix)</Version>
     <CommitHash Condition="$(CommitHash) == ''">N/A</CommitHash>

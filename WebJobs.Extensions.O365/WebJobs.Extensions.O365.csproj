@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <AssemblyName>Microsoft.Azure.WebJobs.Extensions.O365</AssemblyName>
-    <RootNamespace>Microsoft.Azure.WebJobs.Extensions</RootNamespace>
+    <RootNamespace>Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph</RootNamespace>
 
     <PackageId>Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph</PackageId>
     <Description>This extension adds bindings for EventGrid</Description>

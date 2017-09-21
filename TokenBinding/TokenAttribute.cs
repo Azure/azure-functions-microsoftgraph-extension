@@ -1,29 +1,15 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace TokenBinding
+namespace Microsoft.Azure.WebJobs
 {
-    using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Description;
     using System;
 
-    // Requires that a AAD clientId/clientSecret are set. These are from EasyAuth. 
-    // Resource - gets the audience/scopes. (appId
-    // Modes:
-    //    1. From Request - get idToken from request (X-MS-TOKEN-AAD-ID-TOKEN in EA) 
-    //        Set: User="Auth" 
-    //    2. From EA TokenStore (previously logged in) 
-    //        Uses refresh flow
-    //        Set UserId = id. 
-
-    /// <summary>
-    /// Bind to an AAD token.
-    /// Also serves as a base-class for other AAD-bindings.
-    /// </summary>
     [Binding]
     public class TokenAttribute : Attribute
     {
-        private IdentityMode _identity;
+        private TokenIdentityMode _identity;
 
         /// <summary>
         /// Gets or sets a resource for a token exchange. Optional
@@ -50,7 +36,7 @@ namespace TokenBinding
         /// <summary>
         /// Gets or sets how to determine identity. Required.
         /// </summary>
-        public IdentityMode Identity
+        public TokenIdentityMode Identity
         {
             get
             {
@@ -59,9 +45,9 @@ namespace TokenBinding
 
             set
             {
-                if (value == IdentityMode.UserFromRequest)
+                if (value == TokenIdentityMode.UserFromRequest)
                 {
-                    _identity = IdentityMode.UserFromToken;
+                    _identity = TokenIdentityMode.UserFromToken;
                     this.UserToken = "{headers.X-MS-TOKEN-AAD-ID-TOKEN}";
                 }
                 else
@@ -75,16 +61,16 @@ namespace TokenBinding
         {
             switch (this.Identity)
             {
-                case IdentityMode.ClientCredentials:
+                case TokenIdentityMode.ClientCredentials:
                     break;
-                case IdentityMode.UserFromId:
+                case TokenIdentityMode.UserFromId:
                     if (string.IsNullOrWhiteSpace(this.UserId))
                     {
                         throw new FormatException("A token attribute with identity=userFromId requires a userId");
                     }
 
                     break;
-                case IdentityMode.UserFromToken:
+                case TokenIdentityMode.UserFromToken:
                     if (string.IsNullOrWhiteSpace(this.UserToken))
                     {
                         throw new FormatException("A token attribute with identity=userFromToken requires a userToken");

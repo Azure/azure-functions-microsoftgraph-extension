@@ -1,7 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.Collections.Concurrent;
@@ -15,18 +15,17 @@ namespace Microsoft.Azure.WebJobs.Extensions
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Extensions.Bindings;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Bindings;
     using Microsoft.Azure.WebJobs.Host.Config;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
-    using TokenBinding;
 
     /// <summary>
     /// WebJobs SDK Extension for O365 Token binding.
     /// </summary>
-    public class O365Extension : IExtensionConfigProvider,
+    public class MicrosoftGraphExtensionConfig : IExtensionConfigProvider,
         IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
         /// <summary>
@@ -34,7 +33,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
         /// </summary>
         private ConcurrentDictionary<string, CachedClient> clients = new ConcurrentDictionary<string, CachedClient>();
 
-        private TokenExtensionConfig tokenExtension;
+        private AuthTokenExtensionConfig tokenExtension;
 
         // Cache for communicating tokens across webhooks
         internal WebhookSubscriptionStore subscriptionStore;
@@ -63,8 +62,8 @@ namespace Microsoft.Azure.WebJobs.Extensions
             this.appSettings = config.NameResolver;
 
             // Set up token extension; handles auth (only providers supported by Easy Auth)
-            this.tokenExtension = new TokenExtensionConfig();
-            this.tokenExtension.Initialize2(context);
+            this.tokenExtension = new AuthTokenExtensionConfig();
+            this.tokenExtension.InitializeAllExceptRules(context);
             //config.AddExtension(this.tokenExtension);
 
             // Set up logging
@@ -82,14 +81,11 @@ namespace Microsoft.Azure.WebJobs.Extensions
             //this.tokenExtension.TokenRule.BindToInput<GraphServiceClient>(converter);
 
             // Webhooks
-            var webhookSubscriptionRule = context.AddBindingRule<GraphSubscriptionAttribute>();
+            var webhookSubscriptionRule = context.AddBindingRule<GraphWebhookSubscriptionAttribute>();
 
             webhookSubscriptionRule.BindToInput<Subscription[]>(converter);
             webhookSubscriptionRule.BindToInput<string[]>(converter);
-
-            var webhookCreatorRule = context.AddBindingRule<GraphWebhookAttribute>();
-
-            webhookCreatorRule.BindToCollector<string>(converter.CreateCollector);
+            webhookSubscriptionRule.BindToCollector<string>(converter.CreateCollector);
 
             string appSettingBYOBTokenMap = appSettings.Resolve(O365Constants.AppSettingBYOBTokenMap);
             this.subscriptionStore = new WebhookSubscriptionStore(appSettingBYOBTokenMap);
@@ -208,7 +204,7 @@ namespace Microsoft.Azure.WebJobs.Extensions
             {
                 UserId = userId,
                 Resource = O365Constants.GraphBaseUrl,
-                Identity = IdentityMode.UserFromId,
+                Identity = TokenIdentityMode.UserFromId,
             };
 
             return await this.GetMSGraphClientAsync(attr);
@@ -361,13 +357,13 @@ namespace Microsoft.Azure.WebJobs.Extensions
         public class POCOConverter<T> : IAsyncConverter<ExcelAttribute, T[]>, IAsyncConverter<ExcelAttribute, List<T>>
             where T : new()
         {
-            private readonly O365Extension parent;
+            private readonly MicrosoftGraphExtensionConfig parent;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="POCOConverter{T}"/> class.
             /// </summary>
             /// <param name="parent">O365Extension to which the result of the request for data will be returned</param>
-            public POCOConverter(O365Extension parent)
+            public POCOConverter(MicrosoftGraphExtensionConfig parent)
             {
                 this.parent = parent;
             }
@@ -397,19 +393,18 @@ namespace Microsoft.Azure.WebJobs.Extensions
         /// Used for input bindings; Attribute -> Input type
         /// </summary>
         public class Converters :
-            IAsyncConverter<TokenAttribute, GraphServiceClient>,
             IAsyncConverter<ExcelAttribute, string[][]>,
             IAsyncConverter<ExcelAttribute, WorkbookTable>,
             IAsyncConverter<OneDriveAttribute, byte[]>,
             IAsyncConverter<OneDriveAttribute, string>,
             IAsyncConverter<OneDriveAttribute, Stream>,
             IAsyncConverter<OneDriveAttribute, DriveItem>,
-            IAsyncConverter<GraphSubscriptionAttribute, Subscription[]>,
-            IAsyncConverter<GraphSubscriptionAttribute, string[]>
+            IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>,
+            IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>
         {
-            private readonly O365Extension _parent;
+            private readonly MicrosoftGraphExtensionConfig _parent;
 
-            public Converters(O365Extension parent)
+            public Converters(MicrosoftGraphExtensionConfig parent)
             {
                 _parent = parent;
             }
@@ -432,14 +427,9 @@ namespace Microsoft.Azure.WebJobs.Extensions
                 return new OutlookAsyncCollector(client, attr);
             }
 
-            public IAsyncCollector<string> CreateCollector(GraphWebhookAttribute attr)
+            public IAsyncCollector<string> CreateCollector(GraphWebhookSubscriptionAttribute attr)
             {
-                return new GraphWebhookAsyncCollector(_parent, attr);
-            }
-
-            async Task<GraphServiceClient> IAsyncConverter<TokenAttribute, GraphServiceClient>.ConvertAsync(TokenAttribute attr, CancellationToken cancellationToken)
-            {
-                return await _parent.GetMSGraphClientAsync(attr);
+                return new GraphWebhookSubscriptionAsyncCollector(_parent, attr);
             }
 
             async Task<string[][]> IAsyncConverter<ExcelAttribute, string[][]>.ConvertAsync(ExcelAttribute attr, CancellationToken cancellationToken)
@@ -488,23 +478,36 @@ namespace Microsoft.Azure.WebJobs.Extensions
                 return await client.GetOneDriveContentDriveItemAsync(input);
             }
 
-            async Task<Subscription[]> IAsyncConverter<GraphSubscriptionAttribute, Subscription[]>.ConvertAsync(GraphSubscriptionAttribute input, CancellationToken cancellationToken)
+            async Task<Subscription[]> IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
             {
                 return await GetSubscriptionsFromAttribute(input);
             }
 
-            async Task<string[]> IAsyncConverter<GraphSubscriptionAttribute, string[]>.ConvertAsync(GraphSubscriptionAttribute input, CancellationToken cancellationToken)
+            async Task<string[]> IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
             {
                 Subscription[] subscriptions = await GetSubscriptionsFromAttribute(input);
                 return subscriptions.Select(sub => sub.Id).ToArray();
             }
 
-            private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphSubscriptionAttribute attribute)
+            private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphWebhookSubscriptionAttribute attribute)
             {
                 IEnumerable<WebhookSubscriptionStore.SubscriptionEntry> subscriptionEntries = await _parent.subscriptionStore.GetAllSubscriptionsAsync();
-                if (attribute.UserId != null)
+                if (TokenIdentityMode.UserFromRequest.ToString().Equals(attribute.Filter, StringComparison.OrdinalIgnoreCase))
                 {
-                    subscriptionEntries = subscriptionEntries.Where(entry => entry.UserId.Equals(attribute.UserId));
+                    var dummyTokenAttribute = new TokenAttribute()
+                    {
+                        Resource = O365Constants.GraphBaseUrl,
+                        Identity = TokenIdentityMode.UserFromToken,
+                        UserToken = attribute.UserToken,
+                        IdentityProvider = "AAD",
+                    };
+                    var graph = await _parent.GetMSGraphClientAsync(dummyTokenAttribute);
+                    var user = await graph.Me.Request().GetAsync();
+                    subscriptionEntries = subscriptionEntries.Where(entry => entry.UserId.Equals(user.Id));
+                }
+                else if (attribute.Filter != null)
+                {
+                    throw new InvalidOperationException($"There is no filter for {attribute.Filter}");
                 }
 
                 return subscriptionEntries.Select(entry => entry.Subscription).ToArray();

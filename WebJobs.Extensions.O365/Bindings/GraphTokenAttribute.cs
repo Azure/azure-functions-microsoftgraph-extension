@@ -1,10 +1,10 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions.Bindings
+namespace Microsoft.Azure.WebJobs
 {
     using Microsoft.Azure.WebJobs.Description;
-    using TokenBinding;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph;
 
     /// <summary>
     /// Abstract attribute to be base class for all Graph-based binding attributes

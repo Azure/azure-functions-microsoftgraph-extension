@@ -1,29 +1,29 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions.Bindings
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Graph;
-    using System.Linq;
 
     /// <summary>
     /// Collector class used to accumulate client states and create new subscriptions and cache them
     /// </summary>
-    public class GraphWebhookAsyncCollector : IAsyncCollector<string>
+    internal class GraphWebhookSubscriptionAsyncCollector : IAsyncCollector<string>
     {
-        private readonly O365Extension _extension; // already has token
+        private readonly MicrosoftGraphExtensionConfig _extension; // already has token
 
         // User attribute that we're bound against.
         // Has key properties (e.g. what resource we're listening to)
-        private readonly GraphWebhookAttribute _attribute;
+        private readonly GraphWebhookSubscriptionAttribute _attribute;
 
         private List<string> _values;
 
-        public GraphWebhookAsyncCollector(O365Extension extension, GraphWebhookAttribute attribute)
+        public GraphWebhookSubscriptionAsyncCollector(MicrosoftGraphExtensionConfig extension, GraphWebhookSubscriptionAttribute attribute)
         {
             _extension = extension;
             _attribute = attribute;
@@ -41,13 +41,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
         {
             switch (_attribute.Action)
             {
-                case GraphWebhookAction.Create:
+                case GraphWebhookSubscriptionAction.Create:
                     await CreateSubscriptionsFromClientStates();
                     break;
-                case GraphWebhookAction.Delete:
+                case GraphWebhookSubscriptionAction.Delete:
                     await DeleteSubscriptionsFromSubscriptionIds();
                     break;
-                case GraphWebhookAction.Refresh:
+                case GraphWebhookSubscriptionAction.Refresh:
                     await RefreshSubscriptionsFromSubscriptionIds();
                     break;
             }
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Bindings
             clientState = clientState ?? Guid.NewGuid().ToString();
             return new Subscription
             {
-                Resource = _attribute.Listen,
+                Resource = _attribute.SubscriptionResource,
                 ChangeType = ChangeTypeExtension.ConvertArrayToString(_attribute.ChangeTypes),
                 NotificationUrl = _extension.NotificationUrl.ToString(),
                 ExpirationDateTime = DateTime.UtcNow + O365Constants.WebhookExpirationTimeSpan,

@@ -3,20 +3,20 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 {
-    using Microsoft.Azure.WebJobs;
-    using TokenBinding;
     using System;
+    using Microsoft.Azure.WebJobs;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
 
     public class TestHelpers
     {
-        public static JobHost NewHost<T>(TokenExtensionConfig ext = null)
+        public static JobHost NewHost<T>(AuthTokenExtensionConfig ext = null)
         {
             JobHostConfiguration config = new JobHostConfiguration();
             config.HostId = Guid.NewGuid().ToString("n");
             config.StorageConnectionString = null;
             config.DashboardConnectionString = null;
             config.TypeLocator = new FakeTypeLocator<T>();
-            config.AddExtension(ext ?? new TokenExtensionConfig());
+            config.AddExtension(ext ?? new AuthTokenExtensionConfig());
             var host = new JobHost(config);
             return host;
         }

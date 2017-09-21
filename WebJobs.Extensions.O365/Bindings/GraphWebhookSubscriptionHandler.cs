@@ -1,7 +1,7 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.Collections.Generic;
@@ -11,16 +11,15 @@ namespace Microsoft.Azure.WebJobs.Extensions
     using System.Text;
     using System.Threading.Tasks;
     using System.Web;
-    using Microsoft.Azure.WebJobs.Extensions.Bindings;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     // Handles the subscription validation and notification payloads
-    public class GraphWebhookSubscriptionHandler
+    internal class GraphWebhookSubscriptionHandler
     {
-        private readonly O365Extension _extension; // already has token
+        private readonly MicrosoftGraphExtensionConfig _extension; // already has token
 
-        public GraphWebhookSubscriptionHandler(O365Extension extension)
+        public GraphWebhookSubscriptionHandler(MicrosoftGraphExtensionConfig extension)
         {
             _extension = extension;
         }

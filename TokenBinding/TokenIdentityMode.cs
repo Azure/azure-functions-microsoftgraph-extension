@@ -1,12 +1,12 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace TokenBinding
+namespace Microsoft.Azure.WebJobs
 {
     /// <summary>
     /// How the binding should grab the access token
     /// </summary>
-    public enum IdentityMode
+    public enum TokenIdentityMode
     {
         /// <summary>Same as <see cref="UserFromToken"/> with the user token taken from the X-MS-TOKEN-AAD-ID-TOKEN header. Only works for HttpTrigger</summary>
         UserFromRequest,

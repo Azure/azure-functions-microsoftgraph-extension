@@ -1,14 +1,14 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions.Bindings
+namespace Microsoft.Azure.WebJobs
 {
     /// <summary>
     /// Determines what action the output binding for GraphWebhookActionAttribute
     /// will perform. Note that different modes have different semantics for the strings
     /// received by the IAsyncCollector.
     /// </summary>
-    public enum GraphWebhookAction
+    public enum GraphWebhookSubscriptionAction
     {
         /// <summary>
         /// Creates a new webhook (string = clientState)
