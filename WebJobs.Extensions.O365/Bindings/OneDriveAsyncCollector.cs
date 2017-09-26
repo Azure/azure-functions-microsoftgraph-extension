@@ -16,7 +16,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// </summary>
     internal class OneDriveAsyncCollector : IAsyncCollector<Stream>
     {
-        private readonly GraphServiceClient client;
+        private readonly IGraphServiceClient client;
         private readonly OneDriveAttribute attribute;
         private readonly Collection<Stream> fileStreams = new Collection<Stream>();
 
@@ -25,7 +25,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// </summary>
         /// <param name="client">GraphServiceClient used to make calls to MS Graph</param>
         /// <param name="attribute">OneDriveAttribute containing necessary info about file</param>
-        public OneDriveAsyncCollector(GraphServiceClient client, OneDriveAttribute attribute)
+        public OneDriveAsyncCollector(IGraphServiceClient client, OneDriveAttribute attribute)
         {
             this.client = client;
             this.attribute = attribute;

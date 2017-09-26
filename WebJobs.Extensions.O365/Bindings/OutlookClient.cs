@@ -88,7 +88,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <param name="client">GraphServiceClient used to send request</param>
         /// <param name="attr">Outlook Attribute with necessary data to build request</param>
         /// <returns>Async task for posted message</returns>
-        public static async Task SendMessage(this GraphServiceClient client, OutlookAttribute attr, Message msg)
+        public static async Task SendMessage(this IGraphServiceClient client, OutlookAttribute attr, Message msg)
         {
             // Send message & save to sent items folder
             await client.Me.SendMail(msg, true).Request().PostAsync();

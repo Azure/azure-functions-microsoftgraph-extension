@@ -12,11 +12,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
     internal class OutlookAsyncCollector : IAsyncCollector<Message>
     {
-        private readonly GraphServiceClient client;
+        private readonly IGraphServiceClient client;
         private readonly OutlookAttribute attribute;
         private readonly Collection<Message> messages = new Collection<Message>();
 
-        public OutlookAsyncCollector(GraphServiceClient client, OutlookAttribute attribute)
+        public OutlookAsyncCollector(IGraphServiceClient client, OutlookAttribute attribute)
         {
             this.client = client;
             this.attribute = attribute;

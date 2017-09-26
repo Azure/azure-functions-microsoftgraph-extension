@@ -1,6 +1,9 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
@@ -16,6 +19,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Bindings;
     using Microsoft.Azure.WebJobs.Host.Config;
@@ -28,12 +32,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     public class MicrosoftGraphExtensionConfig : IExtensionConfigProvider,
         IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
+        internal IExcelClient ExcelClient { get; set; }
+
+        internal AuthTokenExtensionConfig TokenExtension { get; set; }
+
         /// <summary>
         /// Map principal Id + scopes -> GraphServiceClient + token expiration date
         /// </summary>
         private ConcurrentDictionary<string, CachedClient> clients = new ConcurrentDictionary<string, CachedClient>();
-
-        private AuthTokenExtensionConfig tokenExtension;
 
         // Cache for communicating tokens across webhooks
         internal WebhookSubscriptionStore subscriptionStore;
@@ -62,8 +68,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             this.appSettings = config.NameResolver;
 
             // Set up token extension; handles auth (only providers supported by Easy Auth)
-            this.tokenExtension = new AuthTokenExtensionConfig();
-            this.tokenExtension.InitializeAllExceptRules(context);
+            this.TokenExtension = new AuthTokenExtensionConfig();
+            this.TokenExtension.InitializeAllExceptRules(context);
             //config.AddExtension(this.tokenExtension);
 
             // Set up logging
@@ -109,7 +115,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             var ExcelRule = context.AddBindingRule<ExcelAttribute>();
 
             // Excel Outputs
-            ExcelRule.AddConverter<object[][], JObject>(ExcelClient.CreateRows);
+            ExcelRule.AddConverter<object[][], JObject>(ExcelManager.CreateRows);
             ExcelRule.AddConverter<List<OpenType>, JObject>(typeof(GenericConverter<>)); // used to append/update lists of POCOs
             ExcelRule.AddConverter<OpenType, JObject>(typeof(GenericConverter<>)); // used to append/update arrays of POCOs
             ExcelRule.BindToCollector<JObject>(converter.CreateCollector);
@@ -183,6 +189,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             }
         }
 
+        internal ExcelManager GetExcelManager(TokenAttribute attribute)
+        {
+            if (ExcelClient != null)
+            {
+                return new ExcelManager(ExcelClient);
+            }
+            return new ExcelManager(new ExcelClient(this.GetMSGraphClientAsync(attribute)));
+        }
+
         /// <summary>
         /// Upon receiving webhook trigger data, process it
         /// </summary>
@@ -198,7 +213,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// </summary>
         /// <param name="moniker">string representing serialized TokenAttribute</param>
         /// <returns>Authenticated GraphServiceClient</returns>
-        public virtual async Task<GraphServiceClient> GetMSGraphClientFromUserIdAsync(string userId)
+        public virtual async Task<IGraphServiceClient> GetMSGraphClientFromUserIdAsync(string userId)
         {
             var attr = new TokenAttribute
             {
@@ -216,9 +231,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// </summary>
         /// <param name="attribute">Token attribute with either principal ID or ID token</param>
         /// <returns>Authenticated GSC</returns>
-        public async Task<GraphServiceClient> GetMSGraphClientAsync(TokenAttribute attribute)
+        public async Task<IGraphServiceClient> GetMSGraphClientAsync(TokenAttribute attribute)
         {
-            string token = await this.tokenExtension.GetAccessTokenAsync(attribute);
+            string token = await this.TokenExtension.GetAccessTokenAsync(attribute);
             string principalId = GetTokenOID(token);
 
             var key = string.Concat(principalId, " ", GetTokenOrderedScopes(token));
@@ -295,23 +310,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 // handle T[]
                 if (typeof(T).IsArray)
                 {
-                    JObject jsonContent = new JObject();
-
-                    // T[] -> JArray
-                    JArray rowData = JArray.FromObject(input);
-
-                    jsonContent[O365Constants.ValuesKey] = rowData;
-
-                    // Set rows, columns needed if updating entire worksheet
-                    jsonContent[O365Constants.RowsKey] = rowData.Count();
-
-                    // No exception -- array is rectangular by default
-                    jsonContent[O365Constants.ColsKey] = rowData.First.Count();
-
-                    // Set POCO key to indicate that the values need to be ordered to match the header of the existing table
-                    jsonContent[O365Constants.POCOKey] = true;
-
-                    return jsonContent;
+                    var array = input as object[];
+                    return ConvertEnumerable(array);
                 }
                 else
                 {
@@ -329,6 +329,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             /// <param name="input">POCO input from fx</param>
             /// <returns>JObject with proper keys set</returns>
             public JObject Convert(List<T> input)
+            {
+                return ConvertEnumerable(input);
+            }
+
+            private JObject ConvertEnumerable<U>(IEnumerable<U> input)
             {
                 JObject jsonContent = new JObject();
 
@@ -370,22 +375,22 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             async Task<List<T>> IAsyncConverter<ExcelAttribute, List<T>>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var client = await this.parent.GetMSGraphClientAsync(input);
-                var result = await client.GetExcelRangePOCOListAsync<T>(input);
+                var manager = this.parent.GetExcelManager(input);
+                var result = await manager.GetExcelRangePOCOListAsync<T>(input);
                 return result;
             }
 
             async Task<T[]> IAsyncConverter<ExcelAttribute, T[]>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var client = await this.parent.GetMSGraphClientAsync(input);
-                var result = client.GetExcelRangePOCOAsync<T>(input);
+                var manager = this.parent.GetExcelManager(input);
+                var result = manager.GetExcelRangePOCOAsync<T>(input);
                 return await result;
             }
 
             public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
             {
-                GraphServiceClient client = this.parent.GetMSGraphClientAsync(attr).Result;
-                return new ExcelAsyncCollector(client, attr);
+                var manager = this.parent.GetExcelManager(attr);
+                return new ExcelAsyncCollector(manager, attr);
             }
         }
 
@@ -411,19 +416,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
             {
-                GraphServiceClient client = _parent.GetMSGraphClientAsync(attr).Result;
-                return new ExcelAsyncCollector(client, attr);
+                var manager = _parent.GetExcelManager(attr);
+                return new ExcelAsyncCollector(manager, attr);
             }
 
             public IAsyncCollector<Stream> CreateCollector(OneDriveAttribute attr)
             {
-                GraphServiceClient client = _parent.GetMSGraphClientAsync(attr).Result;
+                IGraphServiceClient client = _parent.GetMSGraphClientAsync(attr).Result;
                 return new OneDriveAsyncCollector(client, attr);
             }
 
             public IAsyncCollector<Message> CreateCollector(OutlookAttribute attr)
             {
-                GraphServiceClient client = _parent.GetMSGraphClientAsync(attr).Result;
+                IGraphServiceClient client = _parent.GetMSGraphClientAsync(attr).Result;
                 return new OutlookAsyncCollector(client, attr);
             }
 
@@ -434,16 +439,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             async Task<string[][]> IAsyncConverter<ExcelAttribute, string[][]>.ConvertAsync(ExcelAttribute attr, CancellationToken cancellationToken)
             {
-                GraphServiceClient client = _parent.GetMSGraphClientAsync(attr).Result;
-                var result = await client.GetExcelRangeAsync(attr);
+                var manager = _parent.GetExcelManager(attr);
+                var result = await manager.GetExcelRangeAsync(attr);
                 return result;
             }
 
             async Task<WorkbookTable> IAsyncConverter<ExcelAttribute, WorkbookTable>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var client = await _parent.GetMSGraphClientAsync(input);
-
-                var result = await client.GetExcelTable(input);
+                var manager = _parent.GetExcelManager(input);
+                var result = await manager.GetExcelTable(input);
                 return result;
             }
 

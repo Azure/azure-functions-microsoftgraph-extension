@@ -16,7 +16,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// should be the same client that subscribed to the notification.
         /// Used to allow other O365 bindings to get on-behalf credentials
         /// </summary>
-        public GraphServiceClient client;
+        public IGraphServiceClient client;
 
         /// <summary>
         /// Results of GET request made using the resource in the notification

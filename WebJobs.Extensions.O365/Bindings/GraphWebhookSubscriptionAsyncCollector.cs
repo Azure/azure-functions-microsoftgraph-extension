@@ -94,7 +94,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             }
         }
 
-        private async void DeleteSubscription(GraphServiceClient client, string id)
+        private async void DeleteSubscription(IGraphServiceClient client, string id)
         {
             try
             {
@@ -123,7 +123,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             }
         }
 
-        private async void RefreshSubscription(GraphServiceClient client, string id)
+        private async void RefreshSubscription(IGraphServiceClient client, string id)
         {
             try
             {

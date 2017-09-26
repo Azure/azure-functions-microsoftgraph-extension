@@ -129,7 +129,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 }
             }
 
-            private static async Task<string> GetTokenFromGraphClientAsync(GraphServiceClient client)
+            private static async Task<string> GetTokenFromGraphClientAsync(IGraphServiceClient client)
             {
                 if (client == null)
                 {

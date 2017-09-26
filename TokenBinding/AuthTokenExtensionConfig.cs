@@ -3,6 +3,7 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Microsoft.Azure.WebJobs.Extensions.Token.Tests")]
+[assembly: InternalsVisibleTo("Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests")]
 namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using System;
