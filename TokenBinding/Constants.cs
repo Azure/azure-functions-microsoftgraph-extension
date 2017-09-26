@@ -29,6 +29,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         public const string AppSettingWebsiteAuthSigningKey = "WEBSITE_AUTH_SIGNING_KEY";
 
         /// <summary>
+        /// Base tenant URL for AAD
+        /// </summary>
+        public const string AppSettingWebsiteAuthOpenIdIssuer = "WEBSITE_AUTH_OPENID_ISSUER";
+
+        /// <summary>
         /// The default base url to grab the token from.
         /// </summary>
         public const string DefaultEnvironmentBaseUrl = "https://login.windows.net/";

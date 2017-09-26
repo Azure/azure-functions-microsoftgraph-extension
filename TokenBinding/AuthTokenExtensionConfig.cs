@@ -50,7 +50,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                 {
                     string clientId = _appSettings.Resolve(Constants.AppSettingClientIdName);
                     string clientSecret = _appSettings.Resolve(Constants.AppSettingClientSecretName);
-                    _aadManager = new AadClient(new ClientCredential(clientId, clientSecret));
+                    string tenantUrl = _appSettings.Resolve(Constants.AppSettingWebsiteAuthOpenIdIssuer);
+                    _aadManager = new AadClient(new ClientCredential(clientId, clientSecret), tenantUrl);
                 }
                 return _aadManager;
             }

@@ -15,10 +15,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         private readonly AuthenticationContext _authContext;
         private readonly ClientCredential _clientCredentials;
 
-        public AadClient(ClientCredential credentials)
+        public AadClient(ClientCredential credentials, string tenantUrl)
         {
-            string aadAuthLoginUrl = Constants.DefaultEnvironmentBaseUrl + Constants.DefaultTenantId;
-            _authContext = new AuthenticationContext(aadAuthLoginUrl);
+            string aadTenantUrl = tenantUrl ?? (Constants.DefaultEnvironmentBaseUrl + Constants.DefaultTenantId);
+            // NOTE: We had to turn off authority validation here, otherwise we would
+            // get the error "AADSTS50049: Unknown or invalid instance" for some tenants.
+            _authContext = new AuthenticationContext(aadTenantUrl,false);
             _clientCredentials = credentials;
         }
 
