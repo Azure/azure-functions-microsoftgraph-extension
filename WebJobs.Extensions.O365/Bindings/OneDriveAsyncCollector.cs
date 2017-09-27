@@ -9,6 +9,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
 
     /// <summary>
@@ -16,19 +17,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// </summary>
     internal class OneDriveAsyncCollector : IAsyncCollector<Stream>
     {
-        private readonly IGraphServiceClient client;
-        private readonly OneDriveAttribute attribute;
-        private readonly Collection<Stream> fileStreams = new Collection<Stream>();
+        private readonly OneDriveService _service;
+        private readonly OneDriveAttribute _attribute;
+        private readonly Collection<Stream> _fileStreams;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OneDriveAsyncCollector"/> class.
         /// </summary>
         /// <param name="client">GraphServiceClient used to make calls to MS Graph</param>
         /// <param name="attribute">OneDriveAttribute containing necessary info about file</param>
-        public OneDriveAsyncCollector(IGraphServiceClient client, OneDriveAttribute attribute)
+        public OneDriveAsyncCollector(OneDriveService service, OneDriveAttribute attribute)
         {
-            this.client = client;
-            this.attribute = attribute;
+            _service = service;
+            _attribute = attribute;
+            _fileStreams = new Collection<Stream>();
         }
 
         /// <summary>
@@ -44,7 +46,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 throw new ArgumentNullException("No stream found");
             }
 
-            this.fileStreams.Add(item);
+            _fileStreams.Add(item);
             return Task.CompletedTask;
         }
 
@@ -56,12 +58,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             // Upload all files
-            foreach (var stream in this.fileStreams)
+            foreach (var stream in _fileStreams)
             {
-                await this.client.UploadOneDriveItemAsync(this.attribute, stream);
+                await _service.UploadOneDriveContentsAsync(_attribute, stream);
             }
 
-            this.fileStreams.Clear();
+            this._fileStreams.Clear();
         }
     }
 }

@@ -15,7 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
     using System.Linq;
     using Newtonsoft.Json;
 
-    public class ExcelTestsEndToEnd
+    public class ExcelTests
     {
         private static WorkbookTable finalTable;
         private static string[][] finalRange;
@@ -30,13 +30,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         private const string newTableAddressMinusHeader = "worksheetName!A2:B3";
 
         [Fact]
-        public static async Task GetWorkbookTable()
+        public static async Task Input_WorkbookTableObject_ReturnsExpectedValue()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
             WorkbookTable table = new WorkbookTable();
             excelMock.Setup(client => client.GetTableWorkbookAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(table));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -47,7 +47,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task GetWorkbookTableAsJaggedStringArray()
+        public static async Task Input_WorkbookTableAsJaggedStringArray_ReturnsExpectedValue()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 Values = JToken.FromObject(range)
             };
             excelMock.Setup(client => client.GetTableWorkbookRangeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookRange));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task GetWorksheetRangeAsJaggedStringArray()
+        public static async Task Input_WorksheetRangeAsJaggedStringArray_ReturnsExpectedValue()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
@@ -78,7 +78,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 Values = JToken.FromObject(range)
             };
             excelMock.Setup(client => client.GetWorksheetWorkbookAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookRange));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -89,7 +89,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task GetWorksheetRangeAsPocoArray()
+        public static async Task Input_WorksheetRangeAsPocoArray_ReturnsExpectedValue()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 Values = JToken.FromObject(range)
             };
             excelMock.Setup(client => client.GetWorksheetWorkbookAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookRange));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task GetWorksheetRangeAsPocoList()
+        public static async Task Input_WorksheetRangeAsPocoList_ReturnsExpectedValue()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
@@ -120,7 +120,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 Values = JToken.FromObject(range)
             };
             excelMock.Setup(client => client.GetWorksheetWorkbookAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookRange));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -131,13 +131,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task AppendRowsWithStringJaggedArray()
+        public static async Task Append_RowsWithStringJaggedArray_SendsPostWithProperValues()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
             string[] headerRow = GetHeaderRow();
             excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -147,13 +147,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task AppendRowWithPoco()
+        public static async Task Append_RowWithPoco_SendsPostWithProperValues()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
             string[] headerRow = GetHeaderRow();
             excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -164,13 +164,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task AppendRowsWithPocoList()
+        public static async Task Append_RowsWithPocoList_SendsPostWithProperValues()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
             string[] headerRow = GetHeaderRow();
             excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -181,13 +181,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task AppendRowsWithPocoArray()
+        public static async Task Append_RowsWithPocoArray_SendsPostWithProperValues()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
             string[] headerRow = GetHeaderRow();
             excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -198,7 +198,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task UpdateWorksheetWithTable()
+        public static async Task Update_WorksheetWithTable_SendsPatchWithProperValues()
         {
             var graphConfig = new MicrosoftGraphExtensionConfig();
             var excelMock = new Mock<IExcelClient>();
@@ -211,7 +211,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
             var workbookInRange = new WorkbookRange();
             excelMock.Setup(client => client.GetWorkSheetWorkbookInRangeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookInRange));
-            graphConfig.ExcelClient = excelMock.Object;
+            graphConfig._excelClient = excelMock.Object;
 
             var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
             var args = new Dictionary<string, object>();
@@ -320,9 +320,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             public void GetWorkbookTable(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName)] WorkbookTable table)
@@ -332,9 +329,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             public void GetExcelTableRange(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName)] string[][] range)
@@ -344,9 +338,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             public void GetExcelWorksheetRange(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName)] string[][] range)
             {
@@ -355,9 +346,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             public void GetExcelWorksheetRangePocoArray(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName)] SamplePoco[] range)
             {
@@ -366,9 +354,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             public void GetExcelWorksheetRangePocoList(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName)] List<SamplePoco> range)
             {
@@ -380,9 +365,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             public void AppendRowJaggedArray(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName)] out object[][] range)
@@ -392,9 +374,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             public void AppendRowPoco(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName)] out SamplePoco row)
@@ -404,9 +383,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             public void AppendRowPocoList(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName)] out List<SamplePoco> rows)
@@ -416,9 +392,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             public void AppendRowPocoArray(
                 [Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName)] out SamplePoco[] rows)
@@ -427,9 +400,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             }
 
             public void UpdateWorksheet([Excel(
-                UserId = "UserId",
-                IdentityProvider = "AAD",
-                Identity = TokenIdentityMode.UserFromId,
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName,

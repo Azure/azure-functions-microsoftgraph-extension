@@ -10,11 +10,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
     using System.Linq;
     using System.Threading.Tasks;
 
-    internal class ExcelManager
+    internal class ExcelService
     {
         private IExcelClient _client;
 
-        public ExcelManager(IExcelClient client)
+        public ExcelService(IExcelClient client)
         {
             _client = client;
         }

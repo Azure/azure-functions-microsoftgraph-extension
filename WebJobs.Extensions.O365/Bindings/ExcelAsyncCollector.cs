@@ -18,7 +18,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// </summary>
     internal class ExcelAsyncCollector : IAsyncCollector<JObject>
     {
-        private readonly ExcelManager _manager;
+        private readonly ExcelService _manager;
         private readonly ExcelAttribute _attribute;
         private readonly Collection<JObject> _rows;
 
@@ -27,7 +27,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// </summary>
         /// <param name="client">GraphServiceClient used to make calls to MS Graph</param>
         /// <param name="attribute">ExcelAttribute containing necessary info about workbook, etc.</param>
-        public ExcelAsyncCollector(ExcelManager manager, ExcelAttribute attribute)
+        public ExcelAsyncCollector(ExcelService manager, ExcelAttribute attribute)
         {
             _manager = manager;
             _attribute = attribute;

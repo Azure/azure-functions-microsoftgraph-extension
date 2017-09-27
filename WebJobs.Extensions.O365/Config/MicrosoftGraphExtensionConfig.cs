@@ -7,18 +7,16 @@ using System.Runtime.CompilerServices;
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.IdentityModel.Tokens.Jwt;
     using System.IO;
     using System.Linq;
     using System.Net.Http;
-    using System.Net.Http.Headers;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Bindings;
@@ -32,31 +30,22 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     public class MicrosoftGraphExtensionConfig : IExtensionConfigProvider,
         IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
-        internal IExcelClient ExcelClient { get; set; }
+        internal IExcelClient _excelClient { get; set; }
 
-        internal AuthTokenExtensionConfig TokenExtension { get; set; }
+        internal IOutlookClient _outlookClient { get; set; }
 
-        /// <summary>
-        /// Map principal Id + scopes -> GraphServiceClient + token expiration date
-        /// </summary>
-        private ConcurrentDictionary<string, CachedClient> clients = new ConcurrentDictionary<string, CachedClient>();
+        internal IOneDriveClient _onedriveClient { get; set; }
 
-        // Cache for communicating tokens across webhooks
-        internal WebhookSubscriptionStore subscriptionStore;
+        internal ServiceManager _serviceManager { get; set; }
 
-        private WebhookTriggerBindingProvider webhookTriggerProvider;
+        internal GraphWebhookConfig _webhookConfig;
 
         /// <summary>
         /// Used to confer information, warnings, etc. to function app log
         /// </summary>
-        internal TraceWriter Log;
+        internal TraceWriter _log;
 
-        /// <summary>
-        /// Gets or sets optional Url if we allow subscribing for WebHooks. Null if no webhooks.
-        /// </summary>
-        public Uri NotificationUrl { get; set; }
-
-        internal INameResolver appSettings;
+        internal INameResolver _appSettings;
 
         /// <summary>
         /// Initialize the O365 binding extension
@@ -65,23 +54,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         public void Initialize(ExtensionConfigContext context)
         {
             var config = context.Config;
-            this.appSettings = config.NameResolver;
-
-            // Set up token extension; handles auth (only providers supported by Easy Auth)
-            this.TokenExtension = new AuthTokenExtensionConfig();
-            this.TokenExtension.InitializeAllExceptRules(context);
-            //config.AddExtension(this.tokenExtension);
+            this._appSettings = config.NameResolver;
 
             // Set up logging
-            this.Log = context.Trace;
+            _log = context.Trace;
+
+            ConfigureServiceManager(context);
 
             // Infer a blank Notification URL from the appsettings.
-            if (this.NotificationUrl == null)
-            {
-                this.NotificationUrl = context.GetWebhookHandler();
-            }
+            string appSettingBYOBTokenMap = _appSettings.Resolve(O365Constants.AppSettingBYOBTokenMap);
+            var subscriptionStore = new WebhookSubscriptionStore(appSettingBYOBTokenMap);
+            var webhookTriggerProvider = new WebhookTriggerBindingProvider();
+            _webhookConfig = new GraphWebhookConfig(context.GetWebhookHandler(), subscriptionStore, webhookTriggerProvider);
 
-            var converter = new Converters(this);
+            var converter = new Converters(_serviceManager, _webhookConfig);
 
             // Extend token attribute to retrieve [authenticated] GraphServiceClient
             //this.tokenExtension.TokenRule.BindToInput<GraphServiceClient>(converter);
@@ -91,12 +77,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             webhookSubscriptionRule.BindToInput<Subscription[]>(converter);
             webhookSubscriptionRule.BindToInput<string[]>(converter);
-            webhookSubscriptionRule.BindToCollector<string>(converter.CreateCollector);
+            webhookSubscriptionRule.BindToCollector<string>(CreateCollector);
 
-            string appSettingBYOBTokenMap = appSettings.Resolve(O365Constants.AppSettingBYOBTokenMap);
-            this.subscriptionStore = new WebhookSubscriptionStore(appSettingBYOBTokenMap);
-            this.webhookTriggerProvider = new WebhookTriggerBindingProvider();
-            context.AddBindingRule<GraphWebhookTriggerAttribute>().BindToTrigger(this.webhookTriggerProvider);
+            context.AddBindingRule<GraphWebhookTriggerAttribute>().BindToTrigger(webhookTriggerProvider);
 
             // OneDrive
             var OneDriveRule = context.AddBindingRule<OneDriveAttribute>();
@@ -108,14 +91,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             OneDriveRule.BindToInput<DriveItem>(converter);
 
             // OneDrive Outputs
-            OneDriveRule.AddConverter<byte[], Stream>(OneDriveClient.CreateStream);
+            OneDriveRule.AddConverter<byte[], Stream>(OneDriveService.CreateStream);
             OneDriveRule.BindToCollector<Stream>(converter.CreateCollector);
 
             // Excel
             var ExcelRule = context.AddBindingRule<ExcelAttribute>();
 
             // Excel Outputs
-            ExcelRule.AddConverter<object[][], JObject>(ExcelManager.CreateRows);
+            ExcelRule.AddConverter<object[][], JObject>(ExcelService.CreateRows);
             ExcelRule.AddConverter<List<OpenType>, JObject>(typeof(GenericConverter<>)); // used to append/update lists of POCOs
             ExcelRule.AddConverter<OpenType, JObject>(typeof(GenericConverter<>)); // used to append/update arrays of POCOs
             ExcelRule.BindToCollector<JObject>(converter.CreateCollector);
@@ -124,158 +107,32 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             // Excel Inputs
             ExcelRule.BindToInput<string[][]>(converter);
             ExcelRule.BindToInput<WorkbookTable>(converter);
-            ExcelRule.BindToInput<List<OpenType>>(typeof(POCOConverter<>), this);
-            ExcelRule.BindToInput<OpenType>(typeof(POCOConverter<>), this);
+            ExcelRule.BindToInput<List<OpenType>>(typeof(POCOConverter<>), _serviceManager);
+            ExcelRule.BindToInput<OpenType>(typeof(POCOConverter<>), _serviceManager);
 
             // Outlook
             var OutlookRule = context.AddBindingRule<OutlookAttribute>();
 
             // Outlook Outputs
-            OutlookRule.AddConverter<JObject, Message>(OutlookClient.CreateMessage);
-            OutlookRule.AddConverter<string, Message>(OutlookClient.CreateMessage);
+            OutlookRule.AddConverter<JObject, Message>(OutlookService.CreateMessage);
+            OutlookRule.AddConverter<string, Message>(OutlookService.CreateMessage);
             OutlookRule.BindToCollector<Message>(converter.CreateCollector);
         }
 
-        /// <summary>
-        /// Retrieve audience from raw JWT
-        /// </summary>
-        /// <param name="rawToken">JWT</param>
-        /// <returns>Token audience</returns>
-        public static string GetTokenOID(string rawToken)
+        private void ConfigureServiceManager(ExtensionConfigContext context)
         {
-            var jwt = new JwtSecurityToken(rawToken);
-            var oidClaim = jwt.Claims.FirstOrDefault(claim => claim.Type == "oid");
-            if (oidClaim == null)
-            {
-                throw new InvalidOperationException("The graph token is missing an oid. Check your Microsoft Graph binding configuration.");
-            }
-            return oidClaim.Value;
+            // Set up token extension; handles auth (only providers supported by Easy Auth)
+            var tokenExtension = new AuthTokenExtensionConfig();
+            tokenExtension.InitializeAllExceptRules(context);
+            _serviceManager = new ServiceManager(tokenExtension);
+            _serviceManager.ExcelClient = _excelClient;
+            _serviceManager.OutlookClient = _outlookClient;
+            _serviceManager.OneDriveClient = _onedriveClient;
         }
 
-        /// <summary>
-        /// Given a JWT, return the list of scopes in alphabetical order
-        /// </summary>
-        /// <param name="rawToken">raw JWT</param>
-        /// <returns>string of scopes in alphabetical order, separated by a space</returns>
-        public static string GetTokenOrderedScopes(string rawToken)
+        public IAsyncCollector<string> CreateCollector(GraphWebhookSubscriptionAttribute attr)
         {
-            var jwt = new JwtSecurityToken(rawToken);
-            var stringScopes = jwt.Claims.FirstOrDefault(claim => claim.Type == "scp")?.Value;
-            if(stringScopes == null)
-            {
-                throw new InvalidOperationException("The graph token has no scopes. Ensure your application is properly configured to access the Microsoft Graph.");
-            }
-            var scopes = stringScopes.Split(' ');
-            Array.Sort(scopes);
-            return string.Join(" ", scopes);
-        }
-
-        /// <summary>
-        /// Retrieve integer token expiration date
-        /// </summary>
-        /// <param name="rawToken">raw JWT</param>
-        /// <returns>parsed expiration date</returns>
-        public static int GetTokenExpirationDate(string rawToken)
-        {
-            var jwt = new JwtSecurityToken(rawToken);
-            var stringTime = jwt.Claims.FirstOrDefault(claim => claim.Type == "exp").Value;
-            int result;
-            if (int.TryParse(stringTime, out result))
-            {
-                return result;
-            } else
-            {
-                return -1;
-            }
-        }
-
-        internal ExcelManager GetExcelManager(TokenAttribute attribute)
-        {
-            if (ExcelClient != null)
-            {
-                return new ExcelManager(ExcelClient);
-            }
-            return new ExcelManager(new ExcelClient(this.GetMSGraphClientAsync(attribute)));
-        }
-
-        /// <summary>
-        /// Upon receiving webhook trigger data, process it
-        /// </summary>
-        /// <param name="data">Data from MS Graph -> triggers webhook fx</param>
-        /// <returns>Task awaiting result of pushing webhook data</returns>
-        internal async Task OnWebhookReceived(WebhookTriggerData data)
-        {
-            await this.webhookTriggerProvider.PushDataAsync(data);
-        }
-
-        /// <summary>
-        /// Hydrate GraphServiceClient from a moniker (serialized TokenAttribute)
-        /// </summary>
-        /// <param name="moniker">string representing serialized TokenAttribute</param>
-        /// <returns>Authenticated GraphServiceClient</returns>
-        public virtual async Task<IGraphServiceClient> GetMSGraphClientFromUserIdAsync(string userId)
-        {
-            var attr = new TokenAttribute
-            {
-                UserId = userId,
-                Resource = O365Constants.GraphBaseUrl,
-                Identity = TokenIdentityMode.UserFromId,
-            };
-
-            return await this.GetMSGraphClientAsync(attr);
-        }
-
-        /// <summary>
-        /// Either retrieve existing GSC or create a new one
-        /// GSCs are cached using a combination of the user's principal ID and the scopes of the token used to authenticate
-        /// </summary>
-        /// <param name="attribute">Token attribute with either principal ID or ID token</param>
-        /// <returns>Authenticated GSC</returns>
-        public async Task<IGraphServiceClient> GetMSGraphClientAsync(TokenAttribute attribute)
-        {
-            string token = await this.TokenExtension.GetAccessTokenAsync(attribute);
-            string principalId = GetTokenOID(token);
-
-            var key = string.Concat(principalId, " ", GetTokenOrderedScopes(token));
-
-            CachedClient client = null;
-
-            // Check to see if there already exists a GSC associated with this principal ID and the token scopes.
-            if (this.clients.TryGetValue(key, out client))
-            {
-                // Check if token is expired
-                if (client.expirationDate < DateTimeOffset.Now.ToUnixTimeSeconds())
-                {
-                    // Need to update the client's token & expiration date
-                    // $$ todo -- just reset token instead of whole new authentication provider?
-                    client.client.AuthenticationProvider = new DelegateAuthenticationProvider(
-                        (requestMessage) =>
-                        {
-                            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
-
-                            return Task.CompletedTask;
-                        });
-                    client.expirationDate = GetTokenExpirationDate(token);
-                }
-
-                return client.client;
-            }
-            else
-            {
-                client = new CachedClient
-                {
-                    client = new GraphServiceClient(
-                        new DelegateAuthenticationProvider(
-                            (requestMessage) =>
-                            {
-                                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
-                                return Task.CompletedTask;
-                            })),
-                    expirationDate = GetTokenExpirationDate(token),
-                };
-                this.clients.TryAdd(key, client);
-                return client.client;
-            }
+            return new GraphWebhookSubscriptionAsyncCollector(_serviceManager, _log, _webhookConfig, attr);
         }
 
         /// <summary>
@@ -287,7 +144,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <returns>Task with HttpResponseMessage for further processing</returns>
         async Task<HttpResponseMessage> IAsyncConverter<HttpRequestMessage, HttpResponseMessage>.ConvertAsync(HttpRequestMessage input, CancellationToken cancellationToken)
         {
-            var handler = new GraphWebhookSubscriptionHandler(this);
+            var handler = new GraphWebhookSubscriptionHandler(_serviceManager, _webhookConfig, _log);
             var response = await handler.ProcessAsync(input);
             return response;
         }
@@ -359,16 +216,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// Used for INPUT bindings: convert Excel Attribute -> POCO inputs
         /// </summary>
         /// <typeparam name="T">POCO type user wishes to bind Excel contents to</typeparam>
-        public class POCOConverter<T> : IAsyncConverter<ExcelAttribute, T[]>, IAsyncConverter<ExcelAttribute, List<T>>
+        internal class POCOConverter<T> : IAsyncConverter<ExcelAttribute, T[]>, IAsyncConverter<ExcelAttribute, List<T>>
             where T : new()
         {
-            private readonly MicrosoftGraphExtensionConfig parent;
+            private readonly ServiceManager parent;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="POCOConverter{T}"/> class.
             /// </summary>
             /// <param name="parent">O365Extension to which the result of the request for data will be returned</param>
-            public POCOConverter(MicrosoftGraphExtensionConfig parent)
+            public POCOConverter(ServiceManager parent)
             {
                 this.parent = parent;
             }
@@ -397,7 +254,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <summary>
         /// Used for input bindings; Attribute -> Input type
         /// </summary>
-        public class Converters :
+        internal class Converters :
             IAsyncConverter<ExcelAttribute, string[][]>,
             IAsyncConverter<ExcelAttribute, WorkbookTable>,
             IAsyncConverter<OneDriveAttribute, byte[]>,
@@ -407,79 +264,77 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>,
             IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>
         {
-            private readonly MicrosoftGraphExtensionConfig _parent;
+            private readonly ServiceManager _serviceManager;
+            private readonly GraphWebhookConfig _webhookConfig;
 
-            public Converters(MicrosoftGraphExtensionConfig parent)
+            public Converters(ServiceManager parent, GraphWebhookConfig webhookConfig)
             {
-                _parent = parent;
+                _serviceManager = parent;
+                _webhookConfig = webhookConfig;
             }
 
             public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
             {
-                var manager = _parent.GetExcelManager(attr);
-                return new ExcelAsyncCollector(manager, attr);
+                var service = _serviceManager.GetExcelManager(attr);
+                return new ExcelAsyncCollector(service, attr);
             }
 
             public IAsyncCollector<Stream> CreateCollector(OneDriveAttribute attr)
             {
-                IGraphServiceClient client = _parent.GetMSGraphClientAsync(attr).Result;
-                return new OneDriveAsyncCollector(client, attr);
+                var service = _serviceManager.GetOneDriveService(attr);
+                return new OneDriveAsyncCollector(service, attr);
             }
 
             public IAsyncCollector<Message> CreateCollector(OutlookAttribute attr)
             {
-                IGraphServiceClient client = _parent.GetMSGraphClientAsync(attr).Result;
-                return new OutlookAsyncCollector(client, attr);
+                return new OutlookAsyncCollector(_serviceManager.GetOutlookService(attr));
             }
 
-            public IAsyncCollector<string> CreateCollector(GraphWebhookSubscriptionAttribute attr)
-            {
-                return new GraphWebhookSubscriptionAsyncCollector(_parent, attr);
-            }
+
 
             async Task<string[][]> IAsyncConverter<ExcelAttribute, string[][]>.ConvertAsync(ExcelAttribute attr, CancellationToken cancellationToken)
             {
-                var manager = _parent.GetExcelManager(attr);
-                var result = await manager.GetExcelRangeAsync(attr);
+                var service = _serviceManager.GetExcelManager(attr);
+                var result = await service.GetExcelRangeAsync(attr);
                 return result;
             }
 
             async Task<WorkbookTable> IAsyncConverter<ExcelAttribute, WorkbookTable>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var manager = _parent.GetExcelManager(input);
-                var result = await manager.GetExcelTable(input);
+                var service = _serviceManager.GetExcelManager(input);
+                var result = await service.GetExcelTable(input);
                 return result;
             }
 
             async Task<byte[]> IAsyncConverter<OneDriveAttribute, byte[]>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
-            {
-                var client = await _parent.GetMSGraphClientAsync(input);
+            { 
+                var service = _serviceManager.GetOneDriveService(input);
 
-                var result = await client.GetOneDriveContentsAsync(input);
+                var result = await service.GetOneDriveContentsAsByteArrayAsync(input);
 
                 return result;
             }
 
             async Task<string> IAsyncConverter<OneDriveAttribute, string>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
             {
-                var graphClient = await _parent.GetMSGraphClientAsync(input);
+                var service = _serviceManager.GetOneDriveService(input);
 
-                var byteArray = await graphClient.GetOneDriveContentsAsync(input);
+                var byteArray = await service.GetOneDriveContentsAsByteArrayAsync(input);
 
                 return Encoding.UTF8.GetString(byteArray);
             }
 
             async Task<Stream> IAsyncConverter<OneDriveAttribute, Stream>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
             {
-                var client = await _parent.GetMSGraphClientAsync(input);
+                var service = _serviceManager.GetOneDriveService(input);
 
-                return await client.GetOneDriveContentStreamAsync(input);
+                return await service.GetOneDriveContentsAsStreamAsync(input);
             }
 
             async Task<DriveItem> IAsyncConverter<OneDriveAttribute, DriveItem>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
             {
-                var client = await _parent.GetMSGraphClientAsync(input);
-                return await client.GetOneDriveContentDriveItemAsync(input);
+                var service = _serviceManager.GetOneDriveService(input);
+                return await service.GetOneDriveItemAsync(input);
             }
 
             async Task<Subscription[]> IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
@@ -495,7 +350,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphWebhookSubscriptionAttribute attribute)
             {
-                IEnumerable<WebhookSubscriptionStore.SubscriptionEntry> subscriptionEntries = await _parent.subscriptionStore.GetAllSubscriptionsAsync();
+                IEnumerable<WebhookSubscriptionStore.SubscriptionEntry> subscriptionEntries = await _webhookConfig.SubscriptionStore.GetAllSubscriptionsAsync();
                 if (TokenIdentityMode.UserFromRequest.ToString().Equals(attribute.Filter, StringComparison.OrdinalIgnoreCase))
                 {
                     var dummyTokenAttribute = new TokenAttribute()
@@ -505,7 +360,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                         UserToken = attribute.UserToken,
                         IdentityProvider = "AAD",
                     };
-                    var graph = await _parent.GetMSGraphClientAsync(dummyTokenAttribute);
+                    var graph = await _serviceManager.GetMSGraphClientAsync(dummyTokenAttribute);
                     var user = await graph.Me.Request().GetAsync();
                     subscriptionEntries = subscriptionEntries.Where(entry => entry.UserId.Equals(user.Id));
                 }
