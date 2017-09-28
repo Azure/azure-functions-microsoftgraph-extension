@@ -21,8 +21,8 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>    
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net46|AnyCPU'">
-    <DebugType>full</DebugType>
+  <PropertyGroup>
+    <DebugType>Full</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 

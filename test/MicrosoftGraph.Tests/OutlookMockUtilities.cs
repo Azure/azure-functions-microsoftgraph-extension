@@ -1,0 +1,41 @@
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
+
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
+{
+    using System;
+    using System.Linq.Expressions;
+    using System.Threading.Tasks;
+    using Microsoft.Graph;
+    using Moq;
+
+    internal static class OutlookMockUtilities
+    {
+        public static void MockSendMessage(this Mock<IGraphServiceClient> mock)
+        {
+            mock.Setup(client => client
+            .Me
+            .SendMail(It.IsAny<Message>(), true)
+            .Request(null)
+            .PostAsync()).Returns(Task.CompletedTask);
+        }
+
+        public static void VerifySendMessage(this Mock<IGraphServiceClient> mock, Expression<Func<Message, bool>> messageCondition)
+        {
+            mock.Verify(client => client
+            .Me
+            .SendMail(It.Is<Message>(messageCondition), true)
+            .Request(null)
+            .PostAsync());
+        }
+
+        public static void VerifyDidNotSendMessage(this Mock<IGraphServiceClient> mock)
+        {
+            mock.Verify(client => client
+            .Me
+            .SendMail(It.IsAny<Message>(), true)
+            .Request(null)
+            .PostAsync(), Times.Never());
+        }
+    }
+}

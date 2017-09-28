@@ -8,18 +8,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
 
     internal class OutlookAsyncCollector : IAsyncCollector<Message>
     {
-        private readonly GraphServiceClient client;
-        private readonly OutlookAttribute attribute;
-        private readonly Collection<Message> messages = new Collection<Message>();
+        private readonly OutlookService _client;
+        private readonly Collection<Message> _messages;
 
-        public OutlookAsyncCollector(GraphServiceClient client, OutlookAttribute attribute)
+        public OutlookAsyncCollector(OutlookService client)
         {
-            this.client = client;
-            this.attribute = attribute;
+            _client = client;
+            _messages = new Collection<Message>();
         }
 
         public Task AddAsync(Message item, CancellationToken cancellationToken = default(CancellationToken))
@@ -29,18 +29,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 throw new ArgumentNullException("No message item");
             }
 
-            this.messages.Add(item);
+            _messages.Add(item);
             return Task.CompletedTask;
         }
 
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            foreach (var msg in this.messages)
+            foreach (var msg in _messages)
             {
-                await this.client.SendMessage(this.attribute, msg);
+                await _client.SendMessageAsync(msg);
             }
 
-            this.messages.Clear();
+            _messages.Clear();
         }
     }
 }

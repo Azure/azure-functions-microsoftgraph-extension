@@ -1,16 +1,41 @@
-// Copyright (c) .NET Foundation. All rights reserved.
+﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using Microsoft.Graph;
-    using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.Graph;
+using Newtonsoft.Json.Linq;
 
-    internal static class OutlookClient
+namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
+{
+    internal class OutlookService
     {
+        private IGraphServiceClient _client;
+
+        public OutlookService(IGraphServiceClient client)
+        {
+            _client = client;
+        }
+
+        public async Task SendMessageAsync(Message msg)
+        {
+            await _client.SendMessageAsync(msg);
+        }
+
+        public static T GetPropertyValueIgnoreCase<T>(JObject input, string key, bool throwException = true)
+        {
+            JToken value;
+            if(!input.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out value)) {
+                if (throwException)
+                {
+                    throw new InvalidOperationException($"The object needs to have a {key} field.");
+                }
+                return default(T);
+            }
+            return value.ToObject<T>();
+        }
+
         /// <summary>
         /// Using the JTokens of a JObject, construct a Microsoft.Graph.Message object
         /// </summary>
@@ -21,21 +46,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             // Set up recipient(s)
             List<Recipient> recipientList = new List<Recipient>();
 
-            var r = input["recipient"] ?? input["recipients"]; // Grab either single recipient JObject or JArray of recipients
+            JToken recipientToken = GetPropertyValueIgnoreCase<JToken>(input, "recipient", false) 
+                ?? GetPropertyValueIgnoreCase<JToken>(input, "recipients", false);
 
+            if(recipientToken == null)
+            {
+                throw new InvalidOperationException("The object needs to have a 'recipient' or 'recipients' field.");
+            }
+                    
             List<JObject> recipients;
 
             // MS Graph Message expects a list of recipients
-            if (r is JArray)
+            if (recipientToken is JArray)
             {
                 // JArray -> List
-                recipients = r.ToObject<List<JObject>>();
+                recipients = recipientToken.ToObject<List<JObject>>();
             }
             else
             {
                 // List with one JObject
                 recipients = new List<JObject>();
-                recipients.Add(r.ToObject<JObject>());
+                recipients.Add(recipientToken.ToObject<JObject>());
             }
 
             if (recipients.Count == 0)
@@ -45,13 +76,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             foreach (JObject recip in recipients)
             {
-                var name = recip["name"]?.ToString();
                 Recipient recipient = new Recipient
                 {
                     EmailAddress = new EmailAddress
                     {
-                        Address = recip["address"].ToString(),
-                        Name = name,
+                        Address = GetPropertyValueIgnoreCase<string>(recip, "address"),
+                        Name = GetPropertyValueIgnoreCase<string>(recip, "name", false),
                     },
                 };
                 recipientList.Add(recipient);
@@ -62,10 +92,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             {
                 Body = new ItemBody
                 {
-                    Content = input["body"].ToString(),
+                    Content = GetPropertyValueIgnoreCase<string>(input, "body"),
                     ContentType = BodyType.Text,
                 },
-                Subject = input["subject"].ToString(),
+                Subject = GetPropertyValueIgnoreCase<string>(input, "subject"),
                 ToRecipients = recipientList,
             };
 
@@ -80,18 +110,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         public static Message CreateMessage(string msg)
         {
             return CreateMessage(JObject.Parse(msg));
-        }
-
-        /// <summary>
-        /// Send an email with a dynamically set body
-        /// </summary>
-        /// <param name="client">GraphServiceClient used to send request</param>
-        /// <param name="attr">Outlook Attribute with necessary data to build request</param>
-        /// <returns>Async task for posted message</returns>
-        public static async Task SendMessage(this GraphServiceClient client, OutlookAttribute attr, Message msg)
-        {
-            // Send message & save to sent items folder
-            await client.Me.SendMail(msg, true).Request().PostAsync();
         }
     }
 }
