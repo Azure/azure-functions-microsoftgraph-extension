@@ -238,7 +238,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
             {
-                var manager = _serviceManager.GetExcelService(attr).Result;
+                var manager = Task.Run(() => _serviceManager.GetExcelService(attr)).GetAwaiter().GetResult();
                 return new ExcelAsyncCollector(manager, attr);
             }
         }
@@ -267,19 +267,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
             {
-                var service = _serviceManager.GetExcelService(attr).Result;
+                var service = Task.Run(() => _serviceManager.GetExcelService(attr)).GetAwaiter().GetResult();
                 return new ExcelAsyncCollector(service, attr);
             }
 
             public IAsyncCollector<Stream> CreateCollector(OneDriveAttribute attr)
             {
-                var service = _serviceManager.GetOneDriveService(attr).Result;
+                var service = Task.Run(() => _serviceManager.GetOneDriveService(attr)).GetAwaiter().GetResult();
                 return new OneDriveAsyncCollector(service, attr);
             }
 
             public IAsyncCollector<Message> CreateCollector(OutlookAttribute attr)
             {
-                return new OutlookAsyncCollector(_serviceManager.GetOutlookService(attr).Result);
+                var service = Task.Run(() => _serviceManager.GetOutlookService(attr)).GetAwaiter().GetResult();
+                return new OutlookAsyncCollector(service);
             }
 
             async Task<string[][]> IAsyncConverter<ExcelAttribute, string[][]>.ConvertAsync(ExcelAttribute attr, CancellationToken cancellationToken)
