@@ -25,54 +25,47 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         [Fact]
         public static async Task JObjectOutput_SendsProperMessage()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var outlookMock = new Mock<IOutlookClient>();
-            graphConfig._outlookClient = outlookMock.Object;
+            var clientMock = SendMessageMock();
 
-            var jobHost = TestHelpers.NewHost<OutlookFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("OutlookFunctions.SendJObject", args);
-            outlookMock.Verify(client => client.SendMessageAsync(It.Is<Message>(msg => MessageEquals(msg, GetMessage()))));
+            await CommonUtilities.ExecuteFunction<OutlookFunctions>(clientMock, "OutlookFunctions.SendJObject");
+
+            clientMock.VerifySendMessage(msg => MessageEquals(msg, GetMessage()));
         }
 
         [Fact]
         public static async Task MessageOutput_SendsProperMessage()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var outlookMock = new Mock<IOutlookClient>();
-            graphConfig._outlookClient = outlookMock.Object;
+            var clientMock = SendMessageMock();
 
-            var jobHost = TestHelpers.NewHost<OutlookFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("OutlookFunctions.SendMessage", args);
-            outlookMock.Verify(client => client.SendMessageAsync(It.Is<Message>(msg => MessageEquals(msg, GetMessage()))));
+            await CommonUtilities.ExecuteFunction<OutlookFunctions>(clientMock, "OutlookFunctions.SendMessage");
+
+            clientMock.VerifySendMessage(msg => MessageEquals(msg, GetMessage()));
         }
 
         [Fact]
         public static async Task PocoOutput_SendsProperMessage()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var outlookMock = new Mock<IOutlookClient>();
-            graphConfig._outlookClient = outlookMock.Object;
+            var clientMock = SendMessageMock();
 
-            var jobHost = TestHelpers.NewHost<OutlookFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("OutlookFunctions.SendPoco", args);
-            outlookMock.Verify(client => client.SendMessageAsync(It.Is<Message>(msg => MessageEquals(msg, GetMessage()))));
+            await CommonUtilities.ExecuteFunction<OutlookFunctions>(clientMock, "OutlookFunctions.SendPoco");
+
+            clientMock.VerifySendMessage(msg => MessageEquals(msg, GetMessage()));
         }
 
         [Fact]
         public static async Task PocoOutputWithNoRecipients_ThrowsException()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var outlookMock = new Mock<IOutlookClient>();
-            graphConfig._outlookClient = outlookMock.Object;
+            var clientMock = SendMessageMock();
 
-            var jobHost = TestHelpers.NewHost<OutlookFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
+            await Assert.ThrowsAnyAsync<Exception>(async () => await CommonUtilities.ExecuteFunction<OutlookFunctions>(clientMock, "OutlookFunctions.NoRecipients"));
+            clientMock.VerifyDidNotSendMessage();
+        }
 
-            await Assert.ThrowsAnyAsync<Exception>(async () => await jobHost.CallAsync("OutlookFunctions.NoRecipients", args));
-            outlookMock.Verify(client => client.SendMessageAsync(It.IsAny<Message>()), Times.Never());
+        private static Mock<IGraphServiceClient> SendMessageMock()
+        {
+            var clientMock = new Mock<IGraphServiceClient>();
+            clientMock.MockSendMessage();
+            return clientMock;
         }
 
         private static bool MessageEquals(Message message1, Message message2)

@@ -3,49 +3,53 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 {
-    using System.Collections.Generic;
     using System.IO;
     using System.Text;
     using System.Threading.Tasks;
-    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
-    using Microsoft.Azure.WebJobs.Extensions.Token.Tests;
     using Microsoft.Graph;
     using Moq;
     using Xunit;
 
     public class OneDriveTests
     {
-        private static string content;
-        private static byte[] bytes;
         private static Stream stream;
-        private static DriveItem driveItem;
 
         private static Encoding encoding = Encoding.UTF8;
         private const string normalPath = "sample/path.txt";
         private const string sharePath = "https://microsoft-my.sharepoint.com/:t:/p/comcmaho/randomstringhere";
+        private const string encodedSharePath = "u!aHR0cHM6Ly9taWNyb3NvZnQtbXkuc2hhcmVwb2ludC5jb20vOnQ6L3AvY29tY21haG8vcmFuZG9tc3RyaW5naGVyZQ";
 
         [Fact]
-        public static async Task Input_String_ReturnsExpectedValue()
+        public static async Task Input_Stream_ReturnsExpectedValue()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var oneDriveMock = new Mock<IOneDriveClient>();
-            oneDriveMock.Setup(client => client.GetOneDriveContentStreamAsync(It.IsAny<string>())).Returns(Task.FromResult(GetContentAsStream()));
-            graphConfig._onedriveClient = oneDriveMock.Object;
+            var clientMock = new Mock<IGraphServiceClient>();
+            clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
 
-            var jobHost = TestHelpers.NewHost<OneDriveInputs>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("OneDriveInputs.StringInput", args);
-            string expected = GetContentAsString();
-            Assert.Equal(expected, content);
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.StreamInput");
+
+            Stream expected = GetContentAsStream();
+            Assert.Equal(ReadStreamBytes(expected), ReadStreamBytes(stream));
+            ResetState();
+        }
+
+        [Fact]
+        public static async Task Input_ShareStream_ReturnsExpectedValue()
+        {
+            var clientMock = new Mock<IGraphServiceClient>();
+            clientMock.MockGetOneDriveContentStreamFromShareAsync(GetContentAsStream());
+
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.ShareStreamInput");
+
+            Stream expected = GetContentAsStream();
+            Assert.Equal(ReadStreamBytes(expected), ReadStreamBytes(stream));
+            clientMock.VerifyGetOneDriveContentStreamFromShareAsync(encodedSharePath);
+
             ResetState();
         }
 
         private static void ResetState()
         {
-            content = null;
-            bytes = null;
             stream = null;
-            driveItem = null;
         }
 
         private static string GetContentAsString()
@@ -63,13 +67,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             return new MemoryStream(GetContentAsBytes());
         }
 
-        private static DriveItem GetDriveItem()
-        {
-            return new DriveItem()
-            {
-                Content = GetContentAsStream(),
-            };
-        }
 
         private static byte[] ReadStreamBytes(Stream stream)
         {
@@ -78,32 +75,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             return readStream.GetBuffer();
         }
 
-        private static string ReadStreamText(Stream stream)
-        {
-            return encoding.GetString(ReadStreamBytes(stream));
-        }
-
-
         public class OneDriveInputs
         {
-            public static void StringInput([OneDrive(Path = normalPath)] string input)
-            {
-                content = input;
-            }
-
-            public static void BytesInput([OneDrive(Path = normalPath)] byte[] input)
-            {
-                bytes = input;
-            }
-
             public static void StreamInput([OneDrive(Path = normalPath)] Stream input)
             {
                 stream = input;
             }
 
-            public static void DriveItemInput([OneDrive(Path = normalPath)] DriveItem input)
+            public static void ShareStreamInput([OneDrive(Path = sharePath)] Stream input)
             {
-                driveItem = input;
+                stream = input;
             }
         }
 

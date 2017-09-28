@@ -12,9 +12,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
     internal class ExcelService
     {
-        private IExcelClient _client;
+        private IGraphServiceClient _client;
 
-        public ExcelService(IExcelClient client)
+        public ExcelService(IGraphServiceClient client)
         {
             _client = client;
         }

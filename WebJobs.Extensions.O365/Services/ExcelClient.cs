@@ -10,18 +10,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
     /// <summary>
     /// Helper for calling onto Excel (MS) Graph
     /// </summary>
-    internal class ExcelClient : IExcelClient
+    internal static class ExcelClient
     {
-        private Task<IGraphServiceClient> _client;
-
-        public ExcelClient(Task<IGraphServiceClient> client)
+        public static async Task<WorkbookTable> GetTableWorkbookAsync(this IGraphServiceClient client, string path, string worksheetName, string tableName)
         {
-            _client = client;
-        }
-
-        public async Task<WorkbookTable> GetTableWorkbookAsync(string path, string worksheetName, string tableName)
-        {
-            return await (await _client)
+            return await client
                 .Me
                 .Drive
                 .Root
@@ -33,9 +26,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .GetAsync();
         }
 
-        public async Task<WorkbookRange> GetTableWorkbookRangeAsync(string path, string worksheetName, string tableName)
+        public static async Task<WorkbookRange> GetTableWorkbookRangeAsync(this IGraphServiceClient client, string path, string worksheetName, string tableName)
         {
-            return await (await _client)
+            return await client
                 .Me
                 .Drive
                 .Root
@@ -48,9 +41,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .GetAsync();
         }
 
-        public async Task<WorkbookRange> GetWorksheetWorkbookAsync(string path, string worksheetName)
+        public static async Task<WorkbookRange> GetWorksheetWorkbookAsync(this IGraphServiceClient client, string path, string worksheetName)
         {
-            return await (await _client)
+            return await client
                 .Me
                 .Drive
                 .Root
@@ -61,9 +54,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .Request()
                 .GetAsync();
         }
-        public async Task<WorkbookRange> GetWorkSheetWorkbookInRangeAsync(string path, string worksheetName, string range)
+
+        public static async Task<WorkbookRange> GetWorkSheetWorkbookInRangeAsync(this IGraphServiceClient client, string path, string worksheetName, string range)
         {
-            return await (await _client)
+            return await client
                 .Me
                 .Drive
                 .Root
@@ -75,9 +69,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .GetAsync();
         }
 
-        public async Task<string[]> GetTableHeaderRowAsync(string path, string tableName)
+        public static async Task<string[]> GetTableHeaderRowAsync(this IGraphServiceClient client, string path, string tableName)
         {
-            var headerRowRange = await (await _client)
+            var headerRowRange = await client
                 .Me
                 .Drive
                 .Root
@@ -90,9 +84,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             return headerRowRange.Values.ToObject<string[]>();
         }
 
-        public async Task<WorkbookTableRow> PostTableRowAsync(string path, string tableName, JToken row)
+        public static async Task<WorkbookTableRow> PostTableRowAsync(this IGraphServiceClient client, string path, string tableName, JToken row)
         {
-            return await (await _client)
+            return await client
                 .Me
                 .Drive
                 .Root
@@ -105,9 +99,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .PostAsync();
         }
 
-        public async Task<WorkbookRange> PatchWorksheetAsync(string path, string worksheetName, string range, WorkbookRange newWorkbook)
+        public static async Task<WorkbookRange> PatchWorksheetAsync(this IGraphServiceClient client, string path, string worksheetName, string range, WorkbookRange newWorkbook)
         {
-            return await (await _client)
+            return await client
                 .Me
                 .Drive
                 .Root

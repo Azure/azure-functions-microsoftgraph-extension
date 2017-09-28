@@ -11,9 +11,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 {
     internal class OutlookService
     {
-        private IOutlookClient _client;
+        private IGraphServiceClient _client;
 
-        public OutlookService(IOutlookClient client)
+        public OutlookService(IGraphServiceClient client)
         {
             _client = client;
         }

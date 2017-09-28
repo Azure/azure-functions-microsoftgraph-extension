@@ -3,17 +3,14 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 {
-    using System.Threading.Tasks;
-    using Xunit;
-    using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Extensions.Token.Tests;
-    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
-    using Moq;
-    using Microsoft.Graph;
     using System.Collections.Generic;
-    using Newtonsoft.Json.Linq;
-    using System.Linq;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs;
+    using Microsoft.Graph;
+    using Moq;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+    using Xunit;
 
     public class ExcelTests
     {
@@ -21,7 +18,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         private static string[][] finalRange;
         private static SamplePoco[] finalRangePocoArray;
         private static List<SamplePoco> finalRangePocoList;
-        private static object[][] finalRangeOut;
 
         private const string path = "sample/path";
         private const string tableName = "tableName";
@@ -32,15 +28,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         [Fact]
         public static async Task Input_WorkbookTableObject_ReturnsExpectedValue()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
             WorkbookTable table = new WorkbookTable();
-            excelMock.Setup(client => client.GetTableWorkbookAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(table));
-            graphConfig._excelClient = excelMock.Object;
+            var clientMock = new Mock<IGraphServiceClient>();
+            clientMock.MockGetTableWorkbookAsync(table);
 
-            var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelInputFunctions.GetWorkbookTable", args);
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetWorkbookTable");
+
             var expectedResult = table;
             Assert.Equal(expectedResult, finalTable);
             ResetState();
@@ -49,19 +42,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         [Fact]
         public static async Task Input_WorkbookTableAsJaggedStringArray_ReturnsExpectedValue()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
+            var clientMock = new Mock<IGraphServiceClient>();
             string[][] range = GetRangeAsJaggedStringArray();
             var workbookRange = new WorkbookRange()
             {
                 Values = JToken.FromObject(range)
             };
-            excelMock.Setup(client => client.GetTableWorkbookRangeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookRange));
-            graphConfig._excelClient = excelMock.Object;
+            clientMock.MockGetTableWorkbookRangeAsync(workbookRange);
 
-            var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelInputFunctions.GetExcelTableRange", args);
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetExcelTableRange");
+
             var expectedResult = range;
             Assert.Equal(expectedResult, finalRange);
             ResetState();
@@ -70,19 +60,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         [Fact]
         public static async Task Input_WorksheetRangeAsJaggedStringArray_ReturnsExpectedValue()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
-            string[][] range = GetRangeAsJaggedStringArray();
-            var workbookRange = new WorkbookRange()
-            {
-                Values = JToken.FromObject(range)
-            };
-            excelMock.Setup(client => client.GetWorksheetWorkbookAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookRange));
-            graphConfig._excelClient = excelMock.Object;
+            var range = GetRangeAsJaggedStringArray();
+            var clientMock = GetWorksheetClientMock(range);
 
-            var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelInputFunctions.GetExcelWorksheetRange", args);
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetExcelWorksheetRange");
+
             var expectedResult = range;
             Assert.Equal(expectedResult, finalRange);
             ResetState();
@@ -91,19 +73,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         [Fact]
         public static async Task Input_WorksheetRangeAsPocoArray_ReturnsExpectedValue()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
-            string[][] range = GetRangeAsJaggedStringArray();
-            var workbookRange = new WorkbookRange()
-            {
-                Values = JToken.FromObject(range)
-            };
-            excelMock.Setup(client => client.GetWorksheetWorkbookAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookRange));
-            graphConfig._excelClient = excelMock.Object;
+            var range = GetRangeAsJaggedStringArray();
+            var clientMock = GetWorksheetClientMock(range);
 
-            var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelInputFunctions.GetExcelWorksheetRangePocoArray", args);
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetExcelWorksheetRangePocoArray");
+
             var expectedResult = JsonConvert.SerializeObject(GetRangeAsPocoArray());
             Assert.Equal(expectedResult, JsonConvert.SerializeObject(finalRangePocoArray));
             ResetState();
@@ -112,19 +86,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         [Fact]
         public static async Task Input_WorksheetRangeAsPocoList_ReturnsExpectedValue()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
             string[][] range = GetRangeAsJaggedStringArray();
-            var workbookRange = new WorkbookRange()
-            {
-                Values = JToken.FromObject(range)
-            };
-            excelMock.Setup(client => client.GetWorksheetWorkbookAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookRange));
-            graphConfig._excelClient = excelMock.Object;
+            var clientMock = GetWorksheetClientMock(range);
 
-            var jobHost = TestHelpers.NewHost<ExcelInputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelInputFunctions.GetExcelWorksheetRangePocoList", args);
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetExcelWorksheetRangePocoList");
+
             var expectedResult = JsonConvert.SerializeObject(GetRangeAsPocoList());
             Assert.Equal(expectedResult, JsonConvert.SerializeObject(finalRangePocoList));
             ResetState();
@@ -133,93 +99,93 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         [Fact]
         public static async Task Append_RowsWithStringJaggedArray_SendsPostWithProperValues()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
-            string[] headerRow = GetHeaderRow();
-            excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
-            graphConfig._excelClient = excelMock.Object;
+            var clientMock = AppendClientMock();
 
-            var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelOutputFunctions.AppendRowJaggedArray", args);
-            excelMock.Verify(client => client.PostTableRowAsync(path, tableName, It.Is<JToken>(token => JTokenEqualsAllButHeaderRow(token))));
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowJaggedArray");
+
+            clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
             ResetState();
         }
 
         [Fact]
         public static async Task Append_RowWithPoco_SendsPostWithProperValues()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
-            string[] headerRow = GetHeaderRow();
-            excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
-            graphConfig._excelClient = excelMock.Object;
+            var clientMock = AppendClientMock();
 
-            var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelOutputFunctions.AppendRowPoco", args);
-            var samplePoco = GetRangeAsPocoArray()[0];
-            excelMock.Verify(client => client.PostTableRowAsync(path, tableName, It.Is<JToken>(token => JTokenEqualsPoco(token, samplePoco))));
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPoco");
+
+            clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
             ResetState();
         }
 
         [Fact]
         public static async Task Append_RowsWithPocoList_SendsPostWithProperValues()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
-            string[] headerRow = GetHeaderRow();
-            excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
-            graphConfig._excelClient = excelMock.Object;
+            var clientMock = AppendClientMock();
 
-            var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelOutputFunctions.AppendRowPocoList", args);
-            var samplePocos = GetRangeAsPocoList();
-            excelMock.Verify(client => client.PostTableRowAsync(path, tableName, It.Is<JToken>(token => JTokenEqualsPocos(token, samplePocos))));
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPocoList");
+
+            clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
             ResetState();
         }
 
         [Fact]
         public static async Task Append_RowsWithPocoArray_SendsPostWithProperValues()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
-            string[] headerRow = GetHeaderRow();
-            excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
-            graphConfig._excelClient = excelMock.Object;
+            var clientMock = AppendClientMock();
 
-            var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelOutputFunctions.AppendRowPocoArray", args);
-            var samplePocos = GetRangeAsPocoArray();
-            excelMock.Verify(client => client.PostTableRowAsync(path, tableName, It.Is<JToken>(token => JTokenEqualsPocos(token, samplePocos))));
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPocoArray");
+
+            clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
             ResetState();
         }
 
         [Fact]
         public static async Task Update_WorksheetWithTable_SendsPatchWithProperValues()
         {
-            var graphConfig = new MicrosoftGraphExtensionConfig();
-            var excelMock = new Mock<IExcelClient>();
-            string[] headerRow = GetHeaderRow();
+            var clientMock = new Mock<IGraphServiceClient>();
+            var headerRow = new WorkbookRange()
+            {
+                Values = JToken.FromObject(GetHeaderRow())
+            };
             var address = new WorkbookRange()
             {
                 Address = fullOldTableAddress,
             };
-            excelMock.Setup(client => client.GetWorksheetWorkbookAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(address));
-            excelMock.Setup(client => client.GetTableHeaderRowAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(headerRow));
             var workbookInRange = new WorkbookRange();
-            excelMock.Setup(client => client.GetWorkSheetWorkbookInRangeAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(workbookInRange));
-            graphConfig._excelClient = excelMock.Object;
+            clientMock.MockGetWorksheetWorkbookAsync(address);
+            clientMock.MockGetTableHeaderRowAsync(headerRow);
+            clientMock.MockGetWorkSheetWorkbookInRangeAsync(workbookInRange);
+            clientMock.MockPatchWorksheetAsync(null);
 
-            var jobHost = TestHelpers.NewHost<ExcelOutputFunctions>(graphConfig);
-            var args = new Dictionary<string, object>();
-            await jobHost.CallAsync("ExcelOutputFunctions.UpdateWorksheet", args);
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheet");
             var samplePocos = GetRangeAsPocoArray();
-            excelMock.Verify(client => client.GetWorkSheetWorkbookInRangeAsync(path, worksheetName, newTableAddressMinusHeader));
-            excelMock.Verify(client => client.PatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, It.Is<WorkbookRange>(range =>JTokenEqualsPocos(range.Values, samplePocos))));
+            clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsPocos(range.Values, samplePocos));
             ResetState();
+        }
+
+        private static Mock<IGraphServiceClient> AppendClientMock()
+        {
+            var clientMock = new Mock<IGraphServiceClient>();
+            string[] headerRow = GetHeaderRow();
+            var workbookRange = new WorkbookRange()
+            {
+                Values = JToken.FromObject(headerRow)
+            };
+            clientMock.MockGetTableHeaderRowAsync(workbookRange);
+            clientMock.MockPostTableRowAsyc(null);
+            return clientMock;
+        }
+
+        private static Mock<IGraphServiceClient> GetWorksheetClientMock(object range)
+        {
+            var clientMock = new Mock<IGraphServiceClient>();
+            var workbookRange = new WorkbookRange()
+            {
+                Values = JToken.FromObject(range)
+            };
+            clientMock.MockGetWorksheetWorkbookAsync(workbookRange);
+            return clientMock;
         }
 
         private static string[] GetHeaderRow()
@@ -262,12 +228,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 }
             }
             return true;
-        }
-
-        private static bool JTokenEqualsPoco(JToken token, SamplePoco poco)
-        {
-            string[,] stringMultiArray = token.ToObject<JArray>().ToObject<string[,]>();
-            return string.Equals(stringMultiArray[0, 0], poco.Name) && string.Equals(stringMultiArray[0, 1], poco.Value);
         }
 
         private static bool JTokenEqualsPocos(JToken token, IEnumerable<SamplePoco> pocos)
@@ -417,7 +377,5 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             public string Name { get; set; }
             public string Value { get; set; }
         }
-
-
     }
 }

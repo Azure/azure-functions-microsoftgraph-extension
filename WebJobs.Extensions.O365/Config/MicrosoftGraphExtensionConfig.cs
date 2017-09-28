@@ -30,12 +30,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     public class MicrosoftGraphExtensionConfig : IExtensionConfigProvider,
         IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
-        internal IExcelClient _excelClient { get; set; }
-
-        internal IOutlookClient _outlookClient { get; set; }
-
-        internal IOneDriveClient _onedriveClient { get; set; }
-
         internal ServiceManager _serviceManager { get; set; }
 
         internal GraphWebhookConfig _webhookConfig;
@@ -121,13 +115,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         private void ConfigureServiceManager(ExtensionConfigContext context)
         {
-            // Set up token extension; handles auth (only providers supported by Easy Auth)
-            var tokenExtension = new AuthTokenExtensionConfig();
-            tokenExtension.InitializeAllExceptRules(context);
-            _serviceManager = new ServiceManager(tokenExtension);
-            _serviceManager.ExcelClient = _excelClient;
-            _serviceManager.OutlookClient = _outlookClient;
-            _serviceManager.OneDriveClient = _onedriveClient;
+            if(_serviceManager == null)
+            {
+                // Set up token extension; handles auth (only providers supported by Easy Auth)
+                var tokenExtension = new AuthTokenExtensionConfig();
+                tokenExtension.InitializeAllExceptRules(context);
+                _serviceManager = new ServiceManager(tokenExtension);
+            }
         }
 
         public IAsyncCollector<string> CreateCollector(GraphWebhookSubscriptionAttribute attr)
@@ -219,34 +213,32 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         internal class POCOConverter<T> : IAsyncConverter<ExcelAttribute, T[]>, IAsyncConverter<ExcelAttribute, List<T>>
             where T : new()
         {
-            private readonly ServiceManager parent;
+            private readonly ServiceManager _serviceManager;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="POCOConverter{T}"/> class.
             /// </summary>
             /// <param name="parent">O365Extension to which the result of the request for data will be returned</param>
-            public POCOConverter(ServiceManager parent)
+            public POCOConverter(ServiceManager serviceManager)
             {
-                this.parent = parent;
+                this._serviceManager = serviceManager;
             }
 
             async Task<List<T>> IAsyncConverter<ExcelAttribute, List<T>>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var manager = this.parent.GetExcelManager(input);
-                var result = await manager.GetExcelRangePOCOListAsync<T>(input);
-                return result;
+                var manager = await _serviceManager.GetExcelService(input);
+                return await manager.GetExcelRangePOCOListAsync<T>(input);
             }
 
             async Task<T[]> IAsyncConverter<ExcelAttribute, T[]>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var manager = this.parent.GetExcelManager(input);
-                var result = manager.GetExcelRangePOCOAsync<T>(input);
-                return await result;
+                var manager = await _serviceManager.GetExcelService(input);
+                return await manager.GetExcelRangePOCOAsync<T>(input);
             }
 
             public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
             {
-                var manager = this.parent.GetExcelManager(attr);
+                var manager = _serviceManager.GetExcelService(attr).Result;
                 return new ExcelAsyncCollector(manager, attr);
             }
         }
@@ -275,65 +267,55 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
             {
-                var service = _serviceManager.GetExcelManager(attr);
+                var service = _serviceManager.GetExcelService(attr).Result;
                 return new ExcelAsyncCollector(service, attr);
             }
 
             public IAsyncCollector<Stream> CreateCollector(OneDriveAttribute attr)
             {
-                var service = _serviceManager.GetOneDriveService(attr);
+                var service = _serviceManager.GetOneDriveService(attr).Result;
                 return new OneDriveAsyncCollector(service, attr);
             }
 
             public IAsyncCollector<Message> CreateCollector(OutlookAttribute attr)
             {
-                return new OutlookAsyncCollector(_serviceManager.GetOutlookService(attr));
+                return new OutlookAsyncCollector(_serviceManager.GetOutlookService(attr).Result);
             }
-
-
 
             async Task<string[][]> IAsyncConverter<ExcelAttribute, string[][]>.ConvertAsync(ExcelAttribute attr, CancellationToken cancellationToken)
             {
-                var service = _serviceManager.GetExcelManager(attr);
-                var result = await service.GetExcelRangeAsync(attr);
-                return result;
+                var service = await _serviceManager.GetExcelService(attr);
+                return await service.GetExcelRangeAsync(attr);
             }
 
             async Task<WorkbookTable> IAsyncConverter<ExcelAttribute, WorkbookTable>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var service = _serviceManager.GetExcelManager(input);
-                var result = await service.GetExcelTable(input);
-                return result;
+                var service = await _serviceManager.GetExcelService(input);
+                return await service.GetExcelTable(input);
             }
 
             async Task<byte[]> IAsyncConverter<OneDriveAttribute, byte[]>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
             { 
-                var service = _serviceManager.GetOneDriveService(input);
-
-                var result = await service.GetOneDriveContentsAsByteArrayAsync(input);
-
-                return result;
+                var service = await _serviceManager.GetOneDriveService(input);
+                return await service.GetOneDriveContentsAsByteArrayAsync(input);
             }
 
             async Task<string> IAsyncConverter<OneDriveAttribute, string>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
             {
-                var service = _serviceManager.GetOneDriveService(input);
-
+                var service = await _serviceManager.GetOneDriveService(input);
                 var byteArray = await service.GetOneDriveContentsAsByteArrayAsync(input);
-
                 return Encoding.UTF8.GetString(byteArray);
             }
 
             async Task<Stream> IAsyncConverter<OneDriveAttribute, Stream>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
             {
-                var service = _serviceManager.GetOneDriveService(input);
-
+                var service = await _serviceManager.GetOneDriveService(input);
                 return await service.GetOneDriveContentsAsStreamAsync(input);
             }
 
             async Task<DriveItem> IAsyncConverter<OneDriveAttribute, DriveItem>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
             {
-                var service = _serviceManager.GetOneDriveService(input);
+                var service = await _serviceManager.GetOneDriveService(input);
                 return await service.GetOneDriveItemAsync(input);
             }
 

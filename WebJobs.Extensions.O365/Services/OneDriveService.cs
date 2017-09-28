@@ -9,9 +9,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 {
     internal class OneDriveService
     {
-        private IOneDriveClient _client;
+        private IGraphServiceClient _client;
 
-        public OneDriveService(IOneDriveClient client)
+        public OneDriveService(IGraphServiceClient client)
         {
             _client = client;
         }

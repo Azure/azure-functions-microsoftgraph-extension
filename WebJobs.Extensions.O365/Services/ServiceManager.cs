@@ -14,9 +14,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
     internal class ServiceManager
     {
-        public IExcelClient ExcelClient { get; set; }
-        public IOutlookClient OutlookClient { get; set; }
-        public IOneDriveClient OneDriveClient { get; set; }
 
         internal AuthTokenExtensionConfig _tokenExtension;
 
@@ -30,35 +27,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             _tokenExtension = config;
         }
 
-
-        internal ExcelService GetExcelManager(TokenAttribute attribute)
+        public async Task<ExcelService> GetExcelService(ExcelAttribute attribute)
         {
-            return new ExcelService(GetExcelClient(attribute));
+            return new ExcelService(await GetMSGraphClientAsync(attribute));
         }
 
-        private IExcelClient GetExcelClient(TokenAttribute attribute)
+        public async Task<OutlookService> GetOutlookService(OutlookAttribute attribute)
         {
-            return ExcelClient ?? new ExcelClient(GetMSGraphClientAsync(attribute));
+            return new OutlookService(await GetMSGraphClientAsync(attribute));
         }
 
-        internal OutlookService GetOutlookService(TokenAttribute attribute)
+        public async Task<OneDriveService> GetOneDriveService(OneDriveAttribute attribute)
         {
-            return new OutlookService(GetOutlookClient(attribute));
-        }
-
-        private IOutlookClient GetOutlookClient(TokenAttribute attribute)
-        {
-            return OutlookClient ?? new OutlookClient(GetMSGraphClientAsync(attribute));
-        }
-
-        internal OneDriveService GetOneDriveService(TokenAttribute attribute)
-        {
-            return new OneDriveService(GetOneDriveClient(attribute));
-        }
-
-        private IOneDriveClient GetOneDriveClient(TokenAttribute attribute)
-        {
-            return OneDriveClient ?? new OneDriveClient(GetMSGraphClientAsync(attribute));
+            return new OneDriveService(await GetMSGraphClientAsync(attribute));
         }
 
         /// <summary>
@@ -82,7 +63,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="rawToken">raw JWT</param>
         /// <returns>string of scopes in alphabetical order, separated by a space</returns>
-        public static string GetTokenOrderedScopes(string rawToken)
+        private static string GetTokenOrderedScopes(string rawToken)
         {
             var jwt = new JwtSecurityToken(rawToken);
             var stringScopes = jwt.Claims.FirstOrDefault(claim => claim.Type == "scp")?.Value;
@@ -100,7 +81,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="rawToken">raw JWT</param>
         /// <returns>parsed expiration date</returns>
-        public static int GetTokenExpirationDate(string rawToken)
+        private static int GetTokenExpirationDate(string rawToken)
         {
             var jwt = new JwtSecurityToken(rawToken);
             var stringTime = jwt.Claims.FirstOrDefault(claim => claim.Type == "exp").Value;
@@ -138,7 +119,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="attribute">Token attribute with either principal ID or ID token</param>
         /// <returns>Authenticated GSC</returns>
-        public async Task<IGraphServiceClient> GetMSGraphClientAsync(TokenAttribute attribute)
+        public virtual async Task<IGraphServiceClient> GetMSGraphClientAsync(TokenAttribute attribute)
         {
             string token = await this._tokenExtension.GetAccessTokenAsync(attribute);
             string principalId = GetTokenOID(token);
