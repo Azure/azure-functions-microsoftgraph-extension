@@ -5,9 +5,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.Collections.ObjectModel;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
 
@@ -16,19 +18,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// </summary>
     internal class ExcelAsyncCollector : IAsyncCollector<JObject>
     {
-        private readonly GraphServiceClient client;
-        private readonly ExcelAttribute attribute;
-        private readonly Collection<JObject> rows = new Collection<JObject>();
+        private readonly ExcelService _manager;
+        private readonly ExcelAttribute _attribute;
+        private readonly Collection<JObject> _rows;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExcelAsyncCollector"/> class.
         /// </summary>
         /// <param name="client">GraphServiceClient used to make calls to MS Graph</param>
         /// <param name="attribute">ExcelAttribute containing necessary info about workbook, etc.</param>
-        public ExcelAsyncCollector(GraphServiceClient client, ExcelAttribute attribute)
+        public ExcelAsyncCollector(ExcelService manager, ExcelAttribute attribute)
         {
-            this.client = client;
-            this.attribute = attribute;
+            _manager = manager;
+            _attribute = attribute;
+            _rows = new Collection<JObject>();
         }
 
         /// <summary>
@@ -44,7 +47,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 throw new ArgumentNullException("No row item");
             }
 
-            this.rows.Add(item);
+            this._rows.Add(item);
             return Task.CompletedTask;
         }
 
@@ -55,35 +58,66 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <returns>Task representing the flushing of the collector</returns>
         public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            // Distinguish between appending and updating
-            if (this.attribute.UpdateType != null && this.attribute.UpdateType == "Update")
+            if (_rows.Count == 0)
             {
-                // Update whole worksheet, whole table, or specific column
-
-                // Updating specific column requires Column, Value set
-                foreach (var row in this.rows)
+                return;
+            }
+            // Distinguish between appending and updating
+            if (this._attribute.UpdateType != null && this._attribute.UpdateType == "Update")
+            {
+                if(_rows.FirstOrDefault(row => row["column"] != null && row["value"] != null) != null)
                 {
-                    if (row["column"] != null && row["value"] != null)
+                    foreach (var row in this._rows)
                     {
-                        await this.client.UpdateColumn(this.attribute, row);
+                        row[O365Constants.RowsKey] = 1;
+                        row[O365Constants.ColsKey] = row.Children().Count();
+                        if (row["column"] != null && row["value"] != null)
+                        {
+                            await _manager.UpdateColumn(this._attribute, row);
+                        }
+                        else
+                        {
+                            // Update whole worksheet
+                            await _manager.UpdateWorksheet(this._attribute, row);
+                        }
                     }
-                    else
-                    {
-                        // Update whole worksheet
-                        await this.client.UpdateWorksheet(this.attribute, row);
-                    }
+                } else if (_rows.Count > 0)
+                {
+                    // Update whole worksheet at once
+                    JObject consolidatedRows = GetConsolidatedRows(_rows);
+                    await _manager.UpdateWorksheet(_attribute, consolidatedRows);
                 }
             }
             else
             {
                 // DEFAULT: Append (rows to specific table)
-                foreach (var row in this.rows)
+                foreach (var row in this._rows)
                 {
-                    await this.client.AddRow(this.attribute, row);
+                    await _manager.AddRow(this._attribute, row);
                 }
             }
 
-            this.rows.Clear();
+            this._rows.Clear();
+        }
+
+        public JObject GetConsolidatedRows(Collection<JObject> rows)
+        {
+            JObject consolidatedRows = new JObject();
+            if (rows.Count > 0)
+            {
+                // List<T> -> JArray
+                consolidatedRows[O365Constants.ValuesKey] = JArray.FromObject(rows);
+
+                // Set rows, columns needed if updating entire worksheet
+                consolidatedRows[O365Constants.RowsKey] = rows.Count;
+
+                // No exception -- array is rectangular by default
+                consolidatedRows[O365Constants.ColsKey] = rows[0].Children().Count();
+
+                // Set POCO key to indicate that the values need to be ordered to match the header of the existing table
+                consolidatedRows[O365Constants.POCOKey] = rows[0][O365Constants.POCOKey];
+            }
+            return consolidatedRows;
         }
     }
 }

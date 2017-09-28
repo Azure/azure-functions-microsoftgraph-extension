@@ -8,6 +8,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
+    using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Graph;
 
     /// <summary>
@@ -15,7 +18,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// </summary>
     internal class GraphWebhookSubscriptionAsyncCollector : IAsyncCollector<string>
     {
-        private readonly MicrosoftGraphExtensionConfig _extension; // already has token
+        private readonly ServiceManager _extension; // already has token
+        private readonly TraceWriter _log;
+        private readonly GraphWebhookConfig _webhookConfig;
 
         // User attribute that we're bound against.
         // Has key properties (e.g. what resource we're listening to)
@@ -23,9 +28,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         private List<string> _values;
 
-        public GraphWebhookSubscriptionAsyncCollector(MicrosoftGraphExtensionConfig extension, GraphWebhookSubscriptionAttribute attribute)
+        public GraphWebhookSubscriptionAsyncCollector(ServiceManager extension, TraceWriter log, GraphWebhookConfig config, GraphWebhookSubscriptionAttribute attribute)
         {
             _extension = extension;
+            _log = log;
+            _webhookConfig = config;
             _attribute = attribute;
             _values = new List<string>();
 
@@ -59,12 +66,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         {
             var client = await _extension.GetMSGraphClientAsync(_attribute);
             var userInfo = await client.Me.Request().Select("Id").GetAsync();
-            var cache = _extension.subscriptionStore;
+            var cache = _webhookConfig.SubscriptionStore;
 
             var subscriptions = _values.Select(GetSubscription);
             foreach (var subscription in subscriptions)
             {
-                _extension.Log.Verbose($"Sending a request to {_extension.NotificationUrl} expecting a 200 response for a subscription to {subscription.Resource}");
+                _log.Verbose($"Sending a request to {_webhookConfig.NotificationUrl} expecting a 200 response for a subscription to {subscription.Resource}");
                 var newSubscription = await client.Subscriptions.Request().AddAsync(subscription);
                 await cache.SaveSubscriptionEntryAsync(newSubscription, userInfo.Id);
             }
@@ -77,7 +84,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             {
                 Resource = _attribute.SubscriptionResource,
                 ChangeType = ChangeTypeExtension.ConvertArrayToString(_attribute.ChangeTypes),
-                NotificationUrl = _extension.NotificationUrl.ToString(),
+                NotificationUrl = _webhookConfig.NotificationUrl.ToString(),
                 ExpirationDateTime = DateTime.UtcNow + O365Constants.WebhookExpirationTimeSpan,
                 ClientState = clientState,
             };
@@ -94,21 +101,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             }
         }
 
-        private async void DeleteSubscription(GraphServiceClient client, string id)
+        private async void DeleteSubscription(IGraphServiceClient client, string id)
         {
             try
             {
                 await client.Subscriptions[id].Request().DeleteAsync();
-                _extension.Log.Info($"Successfully deleted MS Graph subscription {id}.");
+                _log.Info($"Successfully deleted MS Graph subscription {id}.");
             }
             catch
             {
-                _extension.Log.Info($"Failed to delete MS Graph subscription {id}.\n Either it never existed or it has already expired.");
+                _log.Info($"Failed to delete MS Graph subscription {id}.\n Either it never existed or it has already expired.");
             }
             finally
             {
                 // Regardless of whether or not deleting the Graph subscription succeeded, delete the file
-                _extension.subscriptionStore.DeleteAsync(id);
+                await _webhookConfig.SubscriptionStore.DeleteAsync(id);
             }
         }
 
@@ -123,7 +130,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             }
         }
 
-        private async void RefreshSubscription(GraphServiceClient client, string id)
+        private async void RefreshSubscription(IGraphServiceClient client, string id)
         {
             try
             {
@@ -134,14 +141,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
                 var result = await client.Subscriptions[id].Request().UpdateAsync(subscription);
 
-                _extension.Log.Info($"Successfully renewed MS Graph subscription {id}. \n Active until {subscription.ExpirationDateTime}");
+                _log.Info($"Successfully renewed MS Graph subscription {id}. \n Active until {subscription.ExpirationDateTime}");
             }
             catch
             {
-                _extension.Log.Info($"Failed to renew MS Graph subscription {id}.\n Either it never existed or it has already expired.");
+                _log.Info($"Failed to renew MS Graph subscription {id}.\n Either it never existed or it has already expired.");
 
                 // If the subscription is expired, it can no longer be renewed, so delete the file
-                _extension.subscriptionStore.DeleteAsync(id);
+                _webhookConfig.SubscriptionStore.DeleteAsync(id);
             }
         }
     }
