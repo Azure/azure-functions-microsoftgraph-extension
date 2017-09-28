@@ -3,6 +3,7 @@
 
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Bindings;
 using Microsoft.Graph;
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
@@ -58,7 +59,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
         public async Task<Stream> GetOneDriveContentsAsStreamAsync(OneDriveAttribute attr)
         {
-            return await _client.GetOneDriveContentStreamAsync(attr.Path);
+            
+            var oneDriveStream = await _client.GetOneDriveContentStreamAsync(attr.Path);
+
+            if (attr.Access == FileAccess.Read)
+            {
+                return new OneDriveReadStream(oneDriveStream);
+            }
+
+            return new OneDriveWriteStream(_client, oneDriveStream, attr.Path);
         }
 
         public async Task<DriveItem> GetOneDriveItemAsync(OneDriveAttribute attr)

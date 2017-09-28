@@ -16,6 +16,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Bindings;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Azure.WebJobs.Host;
@@ -314,6 +315,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             {
                 var service = await _serviceManager.GetOneDriveService(input);
                 return await service.GetOneDriveContentsAsStreamAsync(input);
+
             }
 
             async Task<DriveItem> IAsyncConverter<OneDriveAttribute, DriveItem>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
