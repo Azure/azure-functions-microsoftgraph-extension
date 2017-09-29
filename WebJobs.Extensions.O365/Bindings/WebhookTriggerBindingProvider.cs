@@ -15,6 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using Microsoft.Azure.WebJobs.Host.Protocols;
     using Microsoft.Azure.WebJobs.Host.Triggers;
     using Microsoft.Graph;
+    using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
     internal class WebhookTriggerBindingProvider :
@@ -154,7 +155,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 bindingData[AuthName] = GetTokenFromGraphClientAsync(data.client);
 
                 JObject raw = data.Payload;
-                var userObject = raw.ToObject(_parameter.ParameterType);
+                object userObject;
+                if (_parameter.ParameterType == typeof(string)) //Non-.NET language case
+                {
+                    userObject = JsonConvert.SerializeObject(raw, Formatting.Indented);
+                }
+                else
+                {
+                    userObject = raw.ToObject(_parameter.ParameterType);
+                }
 
                 IValueProvider valueProvider = new ObjectValueProvider(userObject);
                 var triggerData = new TriggerData(valueProvider, bindingData);
