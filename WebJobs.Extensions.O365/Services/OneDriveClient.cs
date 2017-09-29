@@ -63,7 +63,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <returns>Drive item representing newly added/updated item</returns>
         public static async Task<DriveItem> UploadOneDriveItemAsync(this IGraphServiceClient client, string path, Stream fileStream)
         {
-            return await client
+            DriveItem result = await client
                 .Me
                 .Drive
                 .Root
@@ -71,6 +71,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .Content
                 .Request()
                 .PutAsync<DriveItem>(fileStream);
+            fileStream.Flush();
+            return result;
         }
 
         class GetRootModel

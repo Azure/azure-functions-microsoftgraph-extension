@@ -17,8 +17,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         public OneDriveWriteStream(IGraphServiceClient client, Stream existingStream, string path)
         {
             _client = client;
-            _stream = existingStream;
+            _stream = new MemoryStream();
             _path = path;
+            existingStream.CopyTo(_stream);
         }
 
         public override bool CanRead => false;
@@ -33,8 +34,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         public override void Flush()
         {
+            _stream.Position = 0;
             _client.UploadOneDriveItemAsync(_path, _stream);
-            _stream.Flush();
         }
 
         public override int Read(byte[] buffer, int offset, int count)
