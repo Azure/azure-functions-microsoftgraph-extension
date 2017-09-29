@@ -59,8 +59,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             }
             else
             {
-                // Retrieve stream of OneDrive item
-                response =  await _client.GetOneDriveContentStreamAsync(attr.Path);
+                try
+                {
+                    // Retrieve stream of OneDrive item
+                    response = await _client.GetOneDriveContentStreamAsync(attr.Path);
+                } catch
+                {
+                    //File does not exist, so create new memory stream
+                    response = new MemoryStream();
+                }
+
 
             }
 
