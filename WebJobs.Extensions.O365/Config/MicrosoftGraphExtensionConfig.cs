@@ -71,6 +71,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             webhookSubscriptionRule.BindToInput<Subscription[]>(converter);
             webhookSubscriptionRule.BindToInput<string[]>(converter);
+            webhookSubscriptionRule.BindToInput<JArray>(converter);
             webhookSubscriptionRule.BindToCollector<string>(CreateCollector);
 
             context.AddBindingRule<GraphWebhookTriggerAttribute>().BindToTrigger(webhookTriggerProvider);
@@ -254,7 +255,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             IAsyncConverter<OneDriveAttribute, Stream>,
             IAsyncConverter<OneDriveAttribute, DriveItem>,
             IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>,
-            IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>
+            IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>,
+            IAsyncConverter<GraphWebhookSubscriptionAttribute, JArray>
         {
             private readonly ServiceManager _serviceManager;
             private readonly GraphWebhookConfig _webhookConfig;
@@ -329,6 +331,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             {
                 Subscription[] subscriptions = await GetSubscriptionsFromAttribute(input);
                 return subscriptions.Select(sub => sub.Id).ToArray();
+            }
+
+            async Task<JArray> IAsyncConverter<GraphWebhookSubscriptionAttribute, JArray>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
+            {
+                Subscription[] subscriptions = await GetSubscriptionsFromAttribute(input);
+                var serializedSubscriptions = new JArray();
+                foreach (var subscription in subscriptions)
+                {
+                    serializedSubscriptions.Add(JObject.FromObject(subscription));
+                }
+                return serializedSubscriptions;
             }
 
             private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphWebhookSubscriptionAttribute attribute)
