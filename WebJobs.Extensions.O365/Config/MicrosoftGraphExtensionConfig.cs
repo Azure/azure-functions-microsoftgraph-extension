@@ -16,7 +16,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
-    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Bindings;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Azure.WebJobs.Host;
@@ -86,9 +85,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             OneDriveRule.BindToInput<Stream>(converter);
             OneDriveRule.BindToInput<DriveItem>(converter);
 
-            // OneDrive Outputs
-            OneDriveRule.AddConverter<byte[], Stream>(OneDriveService.CreateStream);
-            OneDriveRule.BindToCollector<Stream>(converter.CreateCollector);
+            OneDriveRule.BindToCollector<byte[]>(converter.CreateCollector);
 
             // Excel
             var ExcelRule = context.AddBindingRule<ExcelAttribute>();
@@ -274,7 +271,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 return new ExcelAsyncCollector(service, attr);
             }
 
-            public IAsyncCollector<Stream> CreateCollector(OneDriveAttribute attr)
+            public IAsyncCollector<byte[]> CreateCollector(OneDriveAttribute attr)
             {
                 var service = Task.Run(() => _serviceManager.GetOneDriveService(attr)).GetAwaiter().GetResult();
                 return new OneDriveAsyncCollector(service, attr);
@@ -315,7 +312,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             {
                 var service = await _serviceManager.GetOneDriveService(input);
                 return await service.GetOneDriveContentsAsStreamAsync(input);
-
             }
 
             async Task<DriveItem> IAsyncConverter<OneDriveAttribute, DriveItem>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
