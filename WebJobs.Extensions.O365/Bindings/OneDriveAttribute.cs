@@ -20,5 +20,16 @@ namespace Microsoft.Azure.WebJobs
         public string Path { get; set; }
 
         public FileAccess? Access { get; set; }
+
+        public OneDriveAttribute()
+        {
+
+        }
+
+        public OneDriveAttribute(string path, FileAccess access)
+        {
+            Path = path;
+            Access = access;
+        }
     }
 }
