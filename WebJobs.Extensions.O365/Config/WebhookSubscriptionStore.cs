@@ -9,6 +9,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Graph;
     using Newtonsoft.Json;
     using File = System.IO.File;
@@ -16,7 +17,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// <summary>
     /// Store mapping from webhook subscription IDs to a token.
     /// </summary>
-    internal class WebhookSubscriptionStore
+    internal class WebhookSubscriptionStore : IGraphSubscriptionStore
     {
         private string root; // @"C:\temp\sub";
 
@@ -53,7 +54,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             return GetSubscriptionPath(subscription.Id);
         }
 
-        internal async Task SaveSubscriptionEntryAsync(Subscription subscription, string userId)
+        public async Task SaveSubscriptionEntryAsync(Subscription subscription, string userId)
         {
             var entry = new SubscriptionEntry
             {
@@ -62,41 +63,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             };
             var subPath = this.GetSubscriptionPath(subscription);
             var jsonString = JsonConvert.SerializeObject(entry);
-            _fileLock.PerformWriteIO(subPath, () => File.WriteAllText(subPath, jsonString));
-        }
-
-        /// <summary>
-        /// Subscription Entry saved in local storage of app
-        /// Location determined by DefaultBYOBLocation or AppSettingBYOBTokenMap
-        /// </summary>
-        public class SubscriptionEntry
-        {
-            /// <summary>
-            /// Gets or sets subscription ID returned by MS Graph after creation
-            /// </summary>
-            public Subscription Subscription { get; set; }
-
-            /// <summary>
-            /// Gets or sets the user id for the subscription
-            /// </summary>
-            public string UserId { get; set; } // $$$ Gets an auth token and client
+            await _fileLock.PerformWriteIOAsync(subPath, () => File.WriteAllText(subPath, jsonString));
         }
 
         public async Task<SubscriptionEntry[]> GetAllSubscriptionsAsync()
         {
-            var subscriptionPaths = _fileLock.PerformReadIO<IEnumerable<string>>(this.root, Directory.EnumerateFiles);
+            var subscriptionPaths = await _fileLock.PerformReadIOAsync<IEnumerable<string>>(this.root, Directory.EnumerateFiles);
             var entryTasks = subscriptionPaths.Select(path => this.GetAsyncFromPath(path));
             return await Task.WhenAll(entryTasks);
         }
 
         private async Task<SubscriptionEntry> GetAsyncFromPath(string path)
         {
-            var contents = _fileLock.PerformReadIO<string>(path, File.ReadAllText);
+            var contents = await _fileLock.PerformReadIOAsync<string>(path, File.ReadAllText);
             var entry = JsonConvert.DeserializeObject<SubscriptionEntry>(contents);
             return entry;
         }
 
-        internal async Task<SubscriptionEntry> GetSubscriptionEntryAsync(string subId)
+        public async Task<SubscriptionEntry> GetSubscriptionEntryAsync(string subId)
         {
             string path = this.GetSubscriptionPath(subId);
             return await this.GetAsyncFromPath(path);
@@ -106,10 +90,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// Delete a single subscription entry
         /// </summary>
         /// <param name="entry">Subscription entry to be deleted</param>
-        internal async Task DeleteAsync(string subscriptionId)
+        public async Task DeleteAsync(string subscriptionId)
         {
             var path = this.GetSubscriptionPath(subscriptionId);
-            _fileLock.PerformWriteIO(path, () => DeleteFileIfExists(path));
+            await _fileLock.PerformWriteIOAsync(path, () => DeleteFileIfExists(path));
         }
 
         private void DeleteFileIfExists(string path)
@@ -140,7 +124,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 }
             }
 
-            public T PerformReadIO<T>(string path, Func<string, T> ioAction)
+            public async Task PerformWriteIOAsync(string path, Action ioAction)
+            {
+                PerformWriteIO(path, ioAction);
+            }
+
+            public async Task<T> PerformReadIOAsync<T>(string path, Func<string, T> ioAction)
             {
                 lock (_locks.GetOrAdd(path, new object()))
                 {

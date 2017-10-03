@@ -8,12 +8,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
 {
     internal class GraphWebhookConfig
     {
-        public readonly WebhookSubscriptionStore SubscriptionStore;
+        public readonly IGraphSubscriptionStore SubscriptionStore;
         public readonly Uri NotificationUrl;
 
         private WebhookTriggerBindingProvider _webhookTriggerProvider;
 
-        public GraphWebhookConfig(Uri notificationUrl, WebhookSubscriptionStore subscriptionStore, WebhookTriggerBindingProvider provider)
+        public GraphWebhookConfig(Uri notificationUrl, IGraphSubscriptionStore subscriptionStore, WebhookTriggerBindingProvider provider)
         {
             SubscriptionStore = subscriptionStore;
             NotificationUrl = notificationUrl;
