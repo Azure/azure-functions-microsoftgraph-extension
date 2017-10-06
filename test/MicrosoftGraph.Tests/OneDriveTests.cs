@@ -93,7 +93,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task Input_DriveItem_IsReadOnly()
+        public static async Task Input_DriveItem_ReturnsExpectedValue()
         {
             var clientMock = new Mock<IGraphServiceClient>();
             var returnedDrive = new DriveItem();
