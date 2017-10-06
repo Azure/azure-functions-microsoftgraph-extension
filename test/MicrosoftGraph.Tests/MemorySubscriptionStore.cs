@@ -11,33 +11,32 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
     class MemorySubscriptionStore : IGraphSubscriptionStore
     {
-        private IDictionary<string, SubscriptionEntry> map;
-
-        public MemorySubscriptionStore()
-        {
-            map = new Dictionary<string, SubscriptionEntry>();
-        }
+        //The key is the subscription id of the subscription entry
+        private IDictionary<string, SubscriptionEntry> _map = new Dictionary<string, SubscriptionEntry>();
 
         public async Task DeleteAsync(string subscriptionId)
         {
-            map.Remove(subscriptionId);
+            if (_map.ContainsKey(subscriptionId))
+            {
+                _map.Remove(subscriptionId);
+            }
         }
 
         public async Task<SubscriptionEntry[]> GetAllSubscriptionsAsync()
         {
-            return map.Select((keyValuePair, index) => keyValuePair.Value).ToArray();
+            return _map.Values.ToArray();
         }
 
-        public async Task<SubscriptionEntry> GetSubscriptionEntryAsync(string subId)
+        public async Task<SubscriptionEntry> GetSubscriptionEntryAsync(string subscriptionId)
         {
             SubscriptionEntry value = null;
-            map.TryGetValue(subId, out value);
+            _map.TryGetValue(subscriptionId, out value);
             return value;
         }
 
         public async Task SaveSubscriptionEntryAsync(Subscription subscription, string userId)
         {
-            map[subscription.Id] = new SubscriptionEntry()
+            _map[subscription.Id] = new SubscriptionEntry()
             {
                 Subscription = subscription,
                 UserId = userId,

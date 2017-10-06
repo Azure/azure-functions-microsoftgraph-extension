@@ -15,6 +15,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
         /// <summary>
         /// Gets or sets the user id for the subscription
         /// </summary>
-        public string UserId { get; set; } // $$$ Gets an auth token and client
+        public string UserId { get; set; }
     }
 }
