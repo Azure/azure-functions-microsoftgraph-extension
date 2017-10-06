@@ -71,7 +71,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .Content
                 .Request()
                 .PutAsync<DriveItem>(fileStream);
-            fileStream.Flush();
             return result;
         }
 
