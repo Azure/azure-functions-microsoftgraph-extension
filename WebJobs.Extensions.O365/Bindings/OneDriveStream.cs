@@ -19,11 +19,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         {
             _client = client;
             _fileAccess = fileAccess ?? FileAccess.ReadWrite;
-            if(CanWrite)
-            {
-                _stream = CopyStream(existingStream);
-                _path = path;
-            }      
+            _path = path;
+            _stream = CanWrite ? CopyStream(existingStream) : existingStream;
         }
 
         public override bool CanRead => _fileAccess == FileAccess.Read || _fileAccess == FileAccess.ReadWrite;
