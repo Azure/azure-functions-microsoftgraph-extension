@@ -14,7 +14,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
     public class OneDriveTests
     {
-        private static Stream stream;
         private static string stringValue;
         private static byte[] bytes;
         private static DriveItem driveItem;
@@ -32,8 +31,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.StreamInput");
 
-            Stream expected = GetContentAsStream();
-            Assert.Equal(ReadStreamBytes(expected), ReadStreamBytes(stream));
+            byte[] expected = GetContentAsBytes();
+            Assert.True(expected.SequenceEqual(bytes));
             ResetState();
         }
 
@@ -45,10 +44,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.ShareStreamInput");
 
-            Stream expected = GetContentAsStream();
-            Assert.Equal(ReadStreamBytes(expected), ReadStreamBytes(stream));
-            clientMock.VerifyGetOneDriveContentStreamFromShareAsync(encodedSharePath);
-
+            byte[] expected = GetContentAsBytes();
+            Assert.True(expected.SequenceEqual(bytes));
             ResetState();
         }
 
@@ -59,6 +56,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
 
             await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.StringInput");
+
+            string expected = GetContentAsString();
+            Assert.Equal(expected, stringValue);
+            ResetState();
+        }
+
+        [Fact]
+        public static async Task Input_TextReader_ReturnsExpectedValue()
+        {
+            var clientMock = new Mock<IGraphServiceClient>();
+            clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
+
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.TextReaderInput");
 
             string expected = GetContentAsString();
             Assert.Equal(expected, stringValue);
@@ -84,11 +94,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
 
-            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.StreamInput");
+            await Assert.ThrowsAnyAsync<Exception>(async () => await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.StreamInputTryWrite"));
 
-            Assert.Equal(false, stream.CanWrite);
-            Assert.Equal(true, stream.CanRead);
-            Assert.Throws<NotSupportedException>(() => stream.Write(null, 0, 0));
             ResetState();
         }
 
@@ -115,10 +122,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteStream");
 
-            //Flush the stream to upload to one drive
-            stream.Flush();
-
-            clientMock.VerifyUploadOneDriveItemAsync(normalPath, stream => ReadStreamBytes(stream).SequenceEqual(ReadStreamBytes(GetContentAsStream())));
+            clientMock.VerifyUploadOneDriveItemAsync(normalPath, stream => ReadStreamBytes(stream).SequenceEqual(GetContentAsBytes()));
             ResetState();
         }
 
@@ -129,19 +133,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
             clientMock.MockUploadOneDriveItemAsync(null);
 
-            await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteStream");
+            await Assert.ThrowsAnyAsync<Exception>(async() => await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteStreamTryRead"));
 
-            Assert.Equal(false, stream.CanRead);
-            Assert.Equal(true, stream.CanWrite);
-            Assert.Throws<NotSupportedException>(() => stream.Read(null, 0, 0));
             ResetState();
         }
 
         [Fact]
-        public static async Task Output_Bytes_UploadsToOneDrive()
+        public static async Task Output_Bytes_NewFileUploadsToOneDrive()
         {
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockUploadOneDriveItemAsync(null);
+            clientMock.MockExceptionForGetOneDriveContentStreamAsync(new Exception());
 
             await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteBytes");
 
@@ -149,9 +151,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             ResetState();
         }
 
+        [Fact]
+        public static async Task Output_TextWriter_NewFileUploadsToOneDrive()
+        {
+            var clientMock = new Mock<IGraphServiceClient>();
+            clientMock.MockUploadOneDriveItemAsync(null);
+            clientMock.MockExceptionForGetOneDriveContentStreamAsync(new Exception());
+
+            await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteTextWriter");
+
+            clientMock.VerifyUploadOneDriveItemAsync(normalPath, stream => ReadStreamBytes(stream).SequenceEqual(ReadStreamBytes(GetContentAsStream())));
+            ResetState();
+        }
+
         private static void ResetState()
         {
-            stream = null;
             stringValue = null;
             bytes = null;
             driveItem = null;
@@ -177,6 +191,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             MemoryStream readStream = new MemoryStream();
             stream.CopyTo(readStream);
+            readStream.Capacity = (int) readStream.Length;
             return readStream.GetBuffer();
         }
 
@@ -184,25 +199,43 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             public static void StreamInput([OneDrive(normalPath, FileAccess.Read)] Stream input)
             {
-                stream = input;
+                bytes = ReadStreamBytes(input);
             }
 
-            public static void ShareStreamInput([OneDrive(Path = sharePath)] Stream input)
+            public static void StreamInputTryWrite([OneDrive(normalPath, FileAccess.Read)] Stream input)
             {
-                stream = input;
+                try
+                {
+                    input.Write(new byte[1], 0, 1);
+                }
+                catch (Exception ex) when(!(ex is NotSupportedException))
+                { 
+                    //swallow any other exceptions
+                }
+
+    }
+
+            public static void ShareStreamInput([OneDrive(sharePath, FileAccess.Read)] Stream input)
+            {
+                bytes = ReadStreamBytes(input);
             }
 
-            public static void StringInput([OneDrive(Path = normalPath)] string input)
+            public static void StringInput([OneDrive(normalPath, FileAccess.Read)] string input)
             {
                 stringValue = input;
             }
 
-            public static void BytesInput([OneDrive(Path = normalPath)] byte[] input)
+            public static void BytesInput([OneDrive(normalPath, FileAccess.Read)] byte[] input)
             {
                 bytes = input;
             }
 
-            public static void DriveItemInput([OneDrive(Path = normalPath)] DriveItem input)
+            public static void TextReaderInput([OneDrive(normalPath, FileAccess.Read)] TextReader input)
+            {
+                stringValue = input.ReadLine();
+            }
+
+            public static void DriveItemInput([OneDrive(normalPath, FileAccess.Read)] DriveItem input)
             {
                 driveItem = input;
             }
@@ -212,12 +245,30 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             public static void WriteStream([OneDrive(normalPath, FileAccess.Write)] Stream output)
             {
-                stream = output;
+                byte[] bytes = GetContentAsBytes();
+                output.Write(bytes, 0, bytes.Length);
             }
 
-            public static void WriteBytes([OneDrive(Path = normalPath)] out byte[] output)
+            public static void WriteStreamTryRead([OneDrive(normalPath, FileAccess.Write)] Stream output)
             {
-                output = GetContentAsBytes();
+                try
+                {
+                    output.Read(new byte[1], 0, 1);
+                }
+                catch (Exception ex) when (!(ex is NotSupportedException))
+                {
+                    //swallow any other exceptions
+                }
+            }
+
+            public static void WriteBytes([OneDrive(normalPath, FileAccess.Write)] out byte[] bytes)
+            {
+                bytes = GetContentAsBytes();
+            }
+
+            public static void WriteTextWriter([OneDrive(normalPath, FileAccess.Write)] TextWriter writer)
+            {
+                writer.Write(GetContentAsString());
             }
         }
 

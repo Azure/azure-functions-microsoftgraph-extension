@@ -80,12 +80,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             var OneDriveRule = context.AddBindingRule<OneDriveAttribute>();
 
             // OneDrive inputs
-            OneDriveRule.BindToInput<byte[]>(converter);
-            OneDriveRule.BindToInput<string>(converter);
-            OneDriveRule.BindToInput<Stream>(converter);
+            OneDriveRule.BindToStream(converter, FileAccess.ReadWrite);
             OneDriveRule.BindToInput<DriveItem>(converter);
-
-            OneDriveRule.BindToCollector<byte[]>(converter.CreateCollector);
 
             // Excel
             var ExcelRule = context.AddBindingRule<ExcelAttribute>();
@@ -248,8 +244,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         internal class Converters :
             IAsyncConverter<ExcelAttribute, string[][]>,
             IAsyncConverter<ExcelAttribute, WorkbookTable>,
-            IAsyncConverter<OneDriveAttribute, byte[]>,
-            IAsyncConverter<OneDriveAttribute, string>,
             IAsyncConverter<OneDriveAttribute, Stream>,
             IAsyncConverter<OneDriveAttribute, DriveItem>,
             IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>,
@@ -271,12 +265,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 return new ExcelAsyncCollector(service, attr);
             }
 
-            public IAsyncCollector<byte[]> CreateCollector(OneDriveAttribute attr)
-            {
-                var service = Task.Run(() => _serviceManager.GetOneDriveService(attr)).GetAwaiter().GetResult();
-                return new OneDriveAsyncCollector(service, attr);
-            }
-
             public IAsyncCollector<Message> CreateCollector(OutlookAttribute attr)
             {
                 var service = Task.Run(() => _serviceManager.GetOutlookService(attr)).GetAwaiter().GetResult();
@@ -293,19 +281,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             {
                 var service = await _serviceManager.GetExcelService(input);
                 return await service.GetExcelTable(input);
-            }
-
-            async Task<byte[]> IAsyncConverter<OneDriveAttribute, byte[]>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
-            { 
-                var service = await _serviceManager.GetOneDriveService(input);
-                return await service.GetOneDriveContentsAsByteArrayAsync(input);
-            }
-
-            async Task<string> IAsyncConverter<OneDriveAttribute, string>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
-            {
-                var service = await _serviceManager.GetOneDriveService(input);
-                var byteArray = await service.GetOneDriveContentsAsByteArrayAsync(input);
-                return Encoding.UTF8.GetString(byteArray);
             }
 
             async Task<Stream> IAsyncConverter<OneDriveAttribute, Stream>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
