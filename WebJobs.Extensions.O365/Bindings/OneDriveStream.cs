@@ -76,6 +76,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             _stream.Write(buffer, offset, count);
         }
 
+        public override void Close()
+        {
+            this.Flush();
+            base.Close();
+            _stream.Close();
+        }
+
         private static Stream CopyStream(Stream stream)
         {
             stream.Position = 0;

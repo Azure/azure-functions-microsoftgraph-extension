@@ -16,23 +16,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             _client = client;
         }
 
-        /// <summary>
-        /// Retrieve contents of OneDrive file
-        /// </summary>
-        /// <param name="client"></param>
-        /// <param name="graphClient"></param>
-        /// <param name="attr"></param>
-        /// <returns></returns>
-        public async Task<byte[]> GetOneDriveContentsAsByteArrayAsync(OneDriveAttribute attr)
-        {
-            var response = await GetOneDriveContentsAsStreamAsync(attr);
-
-            using (MemoryStream ms = new MemoryStream())
-            {
-                await response.CopyToAsync(ms);
-                return ms.ToArray();
-            }
-        }
 
         public Stream ConvertStream(Stream stream, OneDriveAttribute attribute)
         {
@@ -64,8 +47,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                     //File does not exist, so create new memory stream
                     response = new MemoryStream();
                 }
-
-
             }
 
             return ConvertStream(response, attr);
@@ -76,22 +57,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             return await _client.GetOneDriveItemAsync(attr.Path);
         }
 
-        public async Task<DriveItem> UploadOneDriveContentsAsync(OneDriveAttribute attr, Stream fileStream)
-        {
-            return await _client.UploadOneDriveItemAsync(attr.Path, fileStream);
-        }
-
         // https://developer.microsoft.com/en-us/graph/docs/api-reference/v1.0/api/shares_get#transform-a-sharing-url
         private static string UrlToSharingToken(string inputUrl)
         {
             var base64Value = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(inputUrl));
             return "u!" + base64Value.TrimEnd('=').Replace('/', '_').Replace('+', '-');
-        }
-
-
-        public static Stream CreateStream(byte[] byteArray)
-        {
-            return new MemoryStream(byteArray);
         }
     }
 }

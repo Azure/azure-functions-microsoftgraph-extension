@@ -24,6 +24,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Returns(Task.FromResult(returnValue));
         } 
 
+        public static void MockExceptionForGetOneDriveContentStreamAsync(this Mock<IGraphServiceClient> mock, Exception exception)
+        {
+            mock.Setup(client => client.Me
+            .Drive
+            .Root
+            .ItemWithPath(It.IsAny<string>())
+            .Content
+            .Request(null)
+            .GetAsync()).Throws(exception);
+        }
+
         public static void MockGetOneDriveContentStreamFromShareAsync(this Mock<IGraphServiceClient> mock, Stream returnValue)
         {
             mock.Setup(client => client
