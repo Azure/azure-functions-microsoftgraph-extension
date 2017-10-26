@@ -32,6 +32,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     {
         internal ServiceManager _serviceManager { get; set; }
 
+        internal IGraphSubscriptionStore _subscriptionStore { get; set; }
+
         internal GraphWebhookConfig _webhookConfig;
 
         /// <summary>
@@ -48,7 +50,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         public void Initialize(ExtensionConfigContext context)
         {
             var config = context.Config;
-            this._appSettings = config.NameResolver;
+            _appSettings = config.NameResolver;
 
             // Set up logging
             _log = context.Trace;
@@ -57,7 +59,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             // Infer a blank Notification URL from the appsettings.
             string appSettingBYOBTokenMap = _appSettings.Resolve(O365Constants.AppSettingBYOBTokenMap);
-            var subscriptionStore = new WebhookSubscriptionStore(appSettingBYOBTokenMap);
+            var subscriptionStore = _subscriptionStore ?? new WebhookSubscriptionStore(appSettingBYOBTokenMap);
             var webhookTriggerProvider = new WebhookTriggerBindingProvider();
             _webhookConfig = new GraphWebhookConfig(context.GetWebhookHandler(), subscriptionStore, webhookTriggerProvider);
 
@@ -346,7 +348,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             private async Task<Subscription[]> GetSubscriptionsFromAttribute(GraphWebhookSubscriptionAttribute attribute)
             {
-                IEnumerable<WebhookSubscriptionStore.SubscriptionEntry> subscriptionEntries = await _webhookConfig.SubscriptionStore.GetAllSubscriptionsAsync();
+                IEnumerable<SubscriptionEntry> subscriptionEntries = await _webhookConfig.SubscriptionStore.GetAllSubscriptionsAsync();
                 if (TokenIdentityMode.UserFromRequest.ToString().Equals(attribute.Filter, StringComparison.OrdinalIgnoreCase))
                 {
                     var dummyTokenAttribute = new TokenAttribute()

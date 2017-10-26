@@ -17,6 +17,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var graphConfig = new MicrosoftGraphExtensionConfig();
             ServiceManager manager = new Mock(null, clientMock.Object);
             graphConfig._serviceManager = manager;
+            graphConfig._subscriptionStore = new MemorySubscriptionStore();
 
             var jobHost = TestHelpers.NewHost<T>(graphConfig);
             var args = new Dictionary<string, object>();
