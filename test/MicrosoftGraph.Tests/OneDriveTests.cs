@@ -88,7 +88,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             Assert.Equal(false, stream.CanWrite);
             Assert.Equal(true, stream.CanRead);
-            Assert.Throws<NotSupportedException>(() => stream.Write(null, 0, 0));
+            Assert.Throws<NotSupportedException>(() => stream.Write(new byte[0], 0, 0));
             ResetState();
         }
 
@@ -107,16 +107,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task Output_Stream_UploadsToOneDriveOnFlush()
+        public static async Task Output_Stream_UploadsToOneDriveOnClose()
         {
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
             clientMock.MockUploadOneDriveItemAsync(null);
 
             await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteStream");
-
-            //Flush the stream to upload to one drive
-            stream.Flush();
+            stream.Close();
 
             clientMock.VerifyUploadOneDriveItemAsync(normalPath, stream => ReadStreamBytes(stream).SequenceEqual(ReadStreamBytes(GetContentAsStream())));
             ResetState();
@@ -169,7 +167,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
         private static Stream GetContentAsStream()
         {
-            return new MemoryStream(GetContentAsBytes());
+            return new MemoryStream(GetContentAsBytes(), false);
         }
 
 
@@ -212,6 +210,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             public static void WriteStream([OneDrive(normalPath, FileAccess.Write)] Stream output)
             {
+                var memoryStream = GetContentAsStream();
+                memoryStream.CopyTo(output);
                 stream = output;
             }
 

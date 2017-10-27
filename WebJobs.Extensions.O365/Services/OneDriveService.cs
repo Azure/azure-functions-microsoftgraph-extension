@@ -36,7 +36,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
         public Stream ConvertStream(Stream stream, OneDriveAttribute attribute)
         {
-            return new OneDriveStream(_client, attribute.Access, stream, attribute.Path);
+            if (attribute.Access != FileAccess.Write)
+            {
+                return stream;
+            }
+            return new OneDriveStream(_client, attribute.Path);
         }
 
         public async Task<Stream> GetOneDriveContentsAsStreamAsync(OneDriveAttribute attr)

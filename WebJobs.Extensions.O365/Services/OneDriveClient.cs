@@ -63,6 +63,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <returns>Drive item representing newly added/updated item</returns>
         public static async Task<DriveItem> UploadOneDriveItemAsync(this IGraphServiceClient client, string path, Stream fileStream)
         {
+            fileStream.Position = 0;
             DriveItem result = await client
                 .Me
                 .Drive

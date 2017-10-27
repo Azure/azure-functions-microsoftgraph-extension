@@ -5,6 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.IO;
+    using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
 
@@ -15,74 +16,51 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         private readonly string _path;
         private readonly FileAccess _fileAccess;
 
-        public OneDriveStream(IGraphServiceClient client, FileAccess? fileAccess, Stream existingStream, string path)
+        public OneDriveStream(IGraphServiceClient client, string path)
         {
             _client = client;
-            _fileAccess = fileAccess ?? FileAccess.ReadWrite;
             _path = path;
-            _stream = CanWrite ? CopyStream(existingStream) : existingStream;
+            _stream = new MemoryStream();
         }
 
-        public override bool CanRead => _fileAccess == FileAccess.Read || _fileAccess == FileAccess.ReadWrite;
+        public override bool CanRead => false;
 
-        public override bool CanSeek =>  true;
+        public override bool CanSeek =>  false;
 
-        public override bool CanWrite => _fileAccess == FileAccess.Write || _fileAccess == FileAccess.ReadWrite;
+        public override bool CanWrite => true;
 
         public override long Length => _stream.Length;
 
-        public override long Position { get => _stream.Position ; set => _stream.Position = value; }
+        public override long Position { get => _stream.Position; set => throw new NotSupportedException("This stream cannot seek"); }
 
         public override void Flush()
         {
-            if (CanWrite)
-            {
-                var streamCopy = CopyStream(_stream);
-                _client.UploadOneDriveItemAsync(_path, streamCopy);
-            }
-
-            _stream.Flush();         
+            //NO-OP since flush must be idempotent, and the upload operation is not
         }
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if(!CanRead)
-            {
-                throw new NotSupportedException("Cannot read from this stream without read permissions.");
-            }
-            return _stream.Read(buffer, offset, count);
+            throw new NotSupportedException("This stream does not support read operations.");
         }
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            return _stream.Seek(offset, origin);
+            throw new NotSupportedException("This stream does not support seek operations");
         }
 
         public override void SetLength(long value)
         {
-            if(!CanWrite)
-            {
-                throw new NotSupportedException("Cannot set the length without write permissions");
-            }
-            _stream.SetLength(value);
+            throw new NotSupportedException("This stream does not support seek operations");
+        }
+
+        public override void Close()
+        {
+            Task.Run(() => _client.UploadOneDriveItemAsync(_path, _stream)).GetAwaiter().GetResult();
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if(!CanWrite)
-            {
-                throw new NotSupportedException("Cannot write to this stream without write permissions");
-            }
             _stream.Write(buffer, offset, count);
-        }
-
-        private static Stream CopyStream(Stream stream)
-        {
-            stream.Position = 0;
-            var copyStream = new MemoryStream();
-            stream.CopyTo(copyStream);
-            copyStream.Position = 0;
-            return copyStream;
         }
     }
 }
