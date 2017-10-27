@@ -12,11 +12,7 @@ This provides a sample Azure Function extensions for Office.
 
 It also includes Graph Webhook support. See https://github.com/microsoftgraph/aspnet-webhooks-rest-sample for graph webhooks sample. 
 
-The Outlook, OneDrive, and Excel bindings derive from the token binding. See https://github.com/glennamanns/TokenBinding for more information about the token binding.
-
-These bindings should also integrate with the O365 SDK to provide a full experienc.
-
-See https://github.com/Azure/MikeBindings/blob/master/Samples/Functions.cs for sample usages. 
+The Outlook, OneDrive, and Excel bindings derive from the token binding. You can see how to use these bindings in the samples directory.
 
 ## For Authentication
 
