@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\TokenBinding\TokenBinding.csproj" />
+    <ProjectReference Include="..\..\src\TokenBinding\TokenBinding.csproj" />
   </ItemGroup>
 
 </Project>
