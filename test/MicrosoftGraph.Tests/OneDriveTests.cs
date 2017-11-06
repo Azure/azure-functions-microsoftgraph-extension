@@ -180,7 +180,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
         public class OneDriveInputs
         {
-            public static void StreamInput([OneDrive(normalPath, FileAccess.Read)] Stream input)
+            public static void StreamInput([OneDrive(FileAccess.Read, Path = normalPath)] Stream input)
             {
                 stream = input;
             }
@@ -208,7 +208,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
         public class OneDriveOutputs
         {
-            public static void WriteStream([OneDrive(normalPath, FileAccess.Write)] Stream output)
+            public static void WriteStream([OneDrive(FileAccess.Write, Path = normalPath)] Stream output)
             {
                 var memoryStream = GetContentAsStream();
                 memoryStream.CopyTo(output);
