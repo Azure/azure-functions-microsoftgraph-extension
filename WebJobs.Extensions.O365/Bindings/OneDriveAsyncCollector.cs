@@ -15,11 +15,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// <summary>
     /// Collector class used to accumulate and then dispatch requests to MS Graph related to OneDrive
     /// </summary>
-    internal class OneDriveAsyncCollector : IAsyncCollector<Stream>
+    internal class OneDriveAsyncCollector : IAsyncCollector<byte[]>
     {
         private readonly OneDriveService _service;
         private readonly OneDriveAttribute _attribute;
-        private readonly Collection<Stream> _fileStreams;
+        private readonly Collection<byte[]> _fileStreams;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OneDriveAsyncCollector"/> class.
@@ -30,7 +30,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         {
             _service = service;
             _attribute = attribute;
-            _fileStreams = new Collection<Stream>();
+            _fileStreams = new Collection<byte[]>();
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <param name="item">Stream representing OneDrive file</param>
         /// <param name="cancellationToken">Used to propagate notifications</param>
         /// <returns>Task whose resolution results in Stream being added to the collector</returns>
-        public Task AddAsync(Stream item, CancellationToken cancellationToken = default(CancellationToken))
+        public Task AddAsync(byte[] item, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (item == null)
             {
@@ -60,7 +60,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             // Upload all files
             foreach (var stream in _fileStreams)
             {
-                await _service.UploadOneDriveContentsAsync(_attribute, stream);
+                await _service.UploadOneDriveContentsAsync(_attribute, new MemoryStream(stream));
             }
 
             this._fileStreams.Clear();
