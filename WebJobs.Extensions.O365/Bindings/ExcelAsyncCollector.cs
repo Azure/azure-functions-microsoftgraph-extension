@@ -10,7 +10,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
-    using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
 
     /// <summary>

@@ -20,7 +20,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Root
                 .ItemWithPath(It.IsAny<string>())
                 .Workbook
-                .Worksheets[It.IsAny<string>()]
                 .Tables[It.IsAny<string>()]
                 .Request()
                 .GetAsync()).Returns(Task.FromResult(returnValue));
@@ -34,7 +33,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Root
                 .ItemWithPath(It.IsAny<string>())
                 .Workbook
-                .Worksheets[It.IsAny<string>()]
                 .Tables[It.IsAny<string>()]
                 .Range()
                 .Request(null)
@@ -141,7 +139,5 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Request(null)
                 .PatchAsync(It.Is<WorkbookRange>(newWorkbookCondition)));
         }
-
-
     }
 }

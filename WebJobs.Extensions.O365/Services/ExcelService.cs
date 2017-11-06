@@ -21,7 +21,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
         internal Task<WorkbookTable> GetExcelTable(ExcelAttribute attr)
         {
-            return _client.GetTableWorkbookAsync(attr.Path, attr.WorksheetName, attr.TableName);
+            return _client.GetTableWorkbookAsync(attr.Path, attr.TableName);
         }
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             // If TableName is set, then retrieve the contents of a table
             if (attr.TableName != null)
             {
-                range = await _client.GetTableWorkbookRangeAsync(attr.Path, attr.WorksheetName, attr.TableName);
+                range = await _client.GetTableWorkbookRangeAsync(attr.Path, attr.TableName);
             }
             else
             {
@@ -192,7 +192,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             // The table API only allows updating or adding one row at a time.
             // Instead we update the worksheet range corresponding to the table
 
-            string currentTableRange = (await _client.GetTableWorkbookRangeAsync(attr.Path, attr.WorksheetName, attr.TableName)).Address;
+            string currentTableRange = (await _client.GetTableWorkbookRangeAsync(attr.Path, attr.TableName)).Address;
 
             // Retrieve current worksheet rows
             WorkbookRange currentTableWorkbook = await _client.GetWorkSheetWorkbookInRangeAsync(attr.Path, attr.WorksheetName, currentTableRange);
