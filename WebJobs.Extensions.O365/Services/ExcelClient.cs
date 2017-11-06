@@ -12,30 +12,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
     /// </summary>
     internal static class ExcelClient
     {
-        public static async Task<WorkbookTable> GetTableWorkbookAsync(this IGraphServiceClient client, string path, string worksheetName, string tableName)
+        public static async Task<WorkbookTable> GetTableWorkbookAsync(this IGraphServiceClient client, string path, string tableName)
         {
             return await client
-                .Me
-                .Drive
-                .Root
-                .ItemWithPath(path)
-                .Workbook
-                .Worksheets[worksheetName]
-                .Tables[tableName]
+                .GetWorkbookTableRequest(path, tableName)
                 .Request()
                 .GetAsync();
         }
 
-        public static async Task<WorkbookRange> GetTableWorkbookRangeAsync(this IGraphServiceClient client, string path, string worksheetName, string tableName)
+        public static async Task<WorkbookRange> GetTableWorkbookRangeAsync(this IGraphServiceClient client, string path, string tableName)
         {
             return await client
-                .Me
-                .Drive
-                .Root
-                .ItemWithPath(path)
-                .Workbook
-                .Worksheets[worksheetName]
-                .Tables[tableName]
+                .GetWorkbookTableRequest(path, tableName)
                 .Range()
                 .Request()
                 .GetAsync();
@@ -44,12 +32,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         public static async Task<WorkbookRange> GetWorksheetWorkbookAsync(this IGraphServiceClient client, string path, string worksheetName)
         {
             return await client
-                .Me
-                .Drive
-                .Root
-                .ItemWithPath(path)
-                .Workbook
-                .Worksheets[worksheetName]
+                .GetWorkbookWorksheetRequest(path, worksheetName)
                 .UsedRange()
                 .Request()
                 .GetAsync();
@@ -58,12 +41,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         public static async Task<WorkbookRange> GetWorkSheetWorkbookInRangeAsync(this IGraphServiceClient client, string path, string worksheetName, string range)
         {
             return await client
-                .Me
-                .Drive
-                .Root
-                .ItemWithPath(path)
-                .Workbook
-                .Worksheets[worksheetName]
+                .GetWorkbookWorksheetRequest(path, worksheetName)
                 .Range(range)
                 .Request()
                 .GetAsync();
@@ -72,12 +50,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         public static async Task<string[]> GetTableHeaderRowAsync(this IGraphServiceClient client, string path, string tableName)
         {
             var headerRowRange = await client
-                .Me
-                .Drive
-                .Root
-                .ItemWithPath(path)
-                .Workbook
-                .Tables[tableName]
+                .GetWorkbookTableRequest(path, tableName)
                 .HeaderRowRange()
                 .Request()
                 .GetAsync();
@@ -87,12 +60,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         public static async Task<WorkbookTableRow> PostTableRowAsync(this IGraphServiceClient client, string path, string tableName, JToken row)
         {
             return await client
-                .Me
-                .Drive
-                .Root
-                .ItemWithPath(path)
-                .Workbook
-                .Tables[tableName]
+                .GetWorkbookTableRequest(path, tableName)
                 .Rows
                 .Add(null, row)
                 .Request()
@@ -102,15 +70,33 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         public static async Task<WorkbookRange> PatchWorksheetAsync(this IGraphServiceClient client, string path, string worksheetName, string range, WorkbookRange newWorkbook)
         {
             return await client
+                .GetWorkbookWorksheetRequest(path, worksheetName)
+                .Range(range)
+                .Request()
+                .PatchAsync(newWorkbook);
+        }
+
+
+        internal static IWorkbookTableRequestBuilder GetWorkbookTableRequest(this IGraphServiceClient client, string path, string tableName)
+        {
+            return client
                 .Me
                 .Drive
                 .Root
                 .ItemWithPath(path)
                 .Workbook
-                .Worksheets[worksheetName]
-                .Range(range)
-                .Request()
-                .PatchAsync(newWorkbook);
+                .Tables[tableName];
+        }
+
+        internal static IWorkbookWorksheetRequestBuilder GetWorkbookWorksheetRequest(this IGraphServiceClient client, string path, string worksheetName)
+        {
+            return client
+                .Me
+                .Drive
+                .Root
+                .ItemWithPath(path)
+                .Workbook
+                .Worksheets[worksheetName];
         }
     }
 }

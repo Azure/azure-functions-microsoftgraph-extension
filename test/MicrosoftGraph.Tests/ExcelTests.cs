@@ -278,10 +278,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
         private class ExcelInputFunctions
         {
-            public void GetWorkbookTable(
-                [Excel(
+            public void GetWorkbookTable([Excel(
                 Path = path,
-                WorksheetName = worksheetName,
                 TableName = tableName)] WorkbookTable table)
             {
                 finalTable = table;
@@ -290,7 +288,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             public void GetExcelTableRange(
                 [Excel(
                 Path = path,
-                WorksheetName = worksheetName,
                 TableName = tableName)] string[][] range)
             {
                 finalRange = range;
