@@ -9,14 +9,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
 
-    internal class OneDriveStream : Stream
+    internal class OneDriveWriteStream : Stream
     {
         private readonly IGraphServiceClient _client;
         private readonly Stream _stream;
         private readonly string _path;
-        private readonly FileAccess _fileAccess;
 
-        public OneDriveStream(IGraphServiceClient client, string path)
+        public OneDriveWriteStream(IGraphServiceClient client, string path)
         {
             _client = client;
             _path = path;

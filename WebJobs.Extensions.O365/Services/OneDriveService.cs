@@ -40,7 +40,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             {
                 return stream;
             }
-            return new OneDriveStream(_client, attribute.Path);
+            return new OneDriveWriteStream(_client, attribute.Path);
         }
 
         public async Task<Stream> GetOneDriveContentsAsStreamAsync(OneDriveAttribute attr)
