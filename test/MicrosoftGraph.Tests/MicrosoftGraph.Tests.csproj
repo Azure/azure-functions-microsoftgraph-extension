@@ -21,8 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\TokenBinding\TokenBinding.csproj" />
-    <ProjectReference Include="..\..\WebJobs.Extensions.O365\WebJobs.Extensions.O365.csproj" />
+    <ProjectReference Include="..\..\src\TokenBinding\TokenBinding.csproj" />
+    <ProjectReference Include="..\..\src\MicrosoftGraphBinding\MicrosoftGraphBinding.csproj" />
     <ProjectReference Include="..\TokenExtension.Tests\TokenExtension.Tests.csproj" />
   </ItemGroup>
 

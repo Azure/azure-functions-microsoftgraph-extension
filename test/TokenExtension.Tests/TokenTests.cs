@@ -13,7 +13,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
     using Moq;
     using Xunit;
 
-    public class JobhostEndToEnd
+    public class TokenTests
     {
         //Dummy Key
         private const string SigningKey = @"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCK91gD4uDPt
