@@ -25,6 +25,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <returns></returns>
         public async Task<byte[]> GetOneDriveContentsAsByteArrayAsync(OneDriveAttribute attr)
         {
+            var response = await GetOneDriveContentsAsStreamAsync(attr);
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                await response.CopyToAsync(ms);
+                return ms.ToArray();
+            }
+        }
+
+        public Stream ConvertStream(Stream stream, OneDriveAttribute attribute)
+        {
+            if (attribute.Access != FileAccess.Write)
+            {
+                return stream;
+            }
+            return new OneDriveWriteStream(_client, attribute.Path);
+        }
+
+        public async Task<Stream> GetOneDriveContentsAsStreamAsync(OneDriveAttribute attr)
+        {
+            Stream response;
             // How to download from OneDrive: https://developer.microsoft.com/en-us/graph/docs/api-reference/v1.0/api/item_downloadcontent
             // GET https://graph.microsoft.com/v1.0/me/drive/root:/test1/hi.txt:/content HTTP/1.1
             bool isShare = attr.Path.StartsWith("https://");
@@ -34,31 +55,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
                 // Download via a Share URL
                 var shareToken = UrlToSharingToken(attr.Path);
-                var response = await _client.GetOneDriveContentStreamFromShareAsync(shareToken);
-
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    await response.CopyToAsync(ms);
-                    return ms.ToArray();
-                }
+                response = await _client.GetOneDriveContentStreamFromShareAsync(shareToken);
             }
             else
             {
-                // Retrieve stream of OneDrive item
-                var stream = await _client.GetOneDriveContentStreamAsync(attr.Path);
+                try
+                {
+                    // Retrieve stream of OneDrive item
+                    response = await _client.GetOneDriveContentStreamAsync(attr.Path);
+                } catch
+                {
+                    //File does not exist, so create new memory stream
+                    response = new MemoryStream();
+                }
 
-                // Convert to Memory Stream
-                MemoryStream ms = new MemoryStream();
-                await stream.CopyToAsync(ms);
 
-                // Convert to Byte Array
-                return ms.ToArray();
             }
-        }
 
-        public async Task<Stream> GetOneDriveContentsAsStreamAsync(OneDriveAttribute attr)
-        {
-            return await _client.GetOneDriveContentStreamAsync(attr.Path);
+            return ConvertStream(response, attr);
         }
 
         public async Task<DriveItem> GetOneDriveItemAsync(OneDriveAttribute attr)

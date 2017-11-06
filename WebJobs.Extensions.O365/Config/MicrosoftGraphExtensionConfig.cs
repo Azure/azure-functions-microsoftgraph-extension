@@ -87,9 +87,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             OneDriveRule.BindToInput<Stream>(converter);
             OneDriveRule.BindToInput<DriveItem>(converter);
 
-            // OneDrive Outputs
-            OneDriveRule.AddConverter<byte[], Stream>(OneDriveService.CreateStream);
-            OneDriveRule.BindToCollector<Stream>(converter.CreateCollector);
+            OneDriveRule.BindToCollector<byte[]>(converter.CreateCollector);
 
             // Excel
             var ExcelRule = context.AddBindingRule<ExcelAttribute>();
@@ -275,7 +273,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 return new ExcelAsyncCollector(service, attr);
             }
 
-            public IAsyncCollector<Stream> CreateCollector(OneDriveAttribute attr)
+            public IAsyncCollector<byte[]> CreateCollector(OneDriveAttribute attr)
             {
                 var service = Task.Run(() => _serviceManager.GetOneDriveService(attr)).GetAwaiter().GetResult();
                 return new OneDriveAsyncCollector(service, attr);

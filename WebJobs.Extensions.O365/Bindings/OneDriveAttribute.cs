@@ -3,6 +3,7 @@
 
 namespace Microsoft.Azure.WebJobs
 {
+    using System.IO;
     using Microsoft.Azure.WebJobs.Description;
 
     /// <summary>
@@ -17,5 +18,18 @@ namespace Microsoft.Azure.WebJobs
         /// </summary>
         [AutoResolve]
         public string Path { get; set; }
+
+        public FileAccess? Access { get; set; }
+
+        public OneDriveAttribute()
+        {
+
+        }
+
+        public OneDriveAttribute(string path, FileAccess access)
+        {
+            Path = path;
+            Access = access;
+        }
     }
 }
