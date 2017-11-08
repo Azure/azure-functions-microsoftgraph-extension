@@ -17,7 +17,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             _client = client;
         }
 
-        public override Task<IGraphServiceClient> GetMSGraphClientAsync(TokenAttribute attribute)
+        public override Task<IGraphServiceClient> GetMSGraphClientAsync(TokenBaseAttribute attribute)
         {
             return Task.FromResult(_client);
         }

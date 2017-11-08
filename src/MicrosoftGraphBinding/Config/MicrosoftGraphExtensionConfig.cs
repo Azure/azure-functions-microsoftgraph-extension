@@ -351,7 +351,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 {
                     var dummyTokenAttribute = new TokenAttribute()
                     {
-                        Resource = O365Constants.GraphBaseUrl,
                         Identity = TokenIdentityMode.UserFromToken,
                         UserToken = attribute.UserToken,
                         IdentityProvider = "AAD",
