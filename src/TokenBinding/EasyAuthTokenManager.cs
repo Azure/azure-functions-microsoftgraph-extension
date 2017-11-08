@@ -31,7 +31,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// </summary>
         /// <param name="attribute">The metadata for the token to grab</param>
         /// <returns>Task with Token Store entry of the token</returns>
-        public async Task<string> GetEasyAuthAccessTokenAsync(TokenAttribute attribute)
+        public async Task<string> GetEasyAuthAccessTokenAsync(TokenBaseAttribute attribute)
         {
             EasyAuthTokenStoreEntry tokenStoreEntry = await _client.GetTokenStoreEntry(attribute);
 

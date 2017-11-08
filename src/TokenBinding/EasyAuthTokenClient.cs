@@ -47,7 +47,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             _log = log;
         }
 
-        private JwtSecurityToken GetTokenForEasyAuthAccess(TokenAttribute attribute)
+        private JwtSecurityToken GetTokenForEasyAuthAccess(TokenBaseAttribute attribute)
         {
             if (_tokenForEasyAuthAccess == null || _tokenForEasyAuthAccess.ValidTo <= DateTime.UtcNow.AddMinutes(_jwtExpirationBufferInMinutes))
             {
@@ -57,7 +57,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             return _tokenForEasyAuthAccess;
         }
 
-        public async Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(TokenAttribute attribute)
+        public async Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(TokenBaseAttribute attribute)
         {
             var jwt = GetTokenForEasyAuthAccess(attribute);
 
@@ -82,7 +82,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
         }
 
-        public async Task RefreshToken(TokenAttribute attribute)
+        public async Task RefreshToken(TokenBaseAttribute attribute)
         {
             if (string.IsNullOrEmpty(attribute.Resource))
             {
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
         }
 
-        private JwtSecurityToken CreateTokenForEasyAuthAccess(TokenAttribute attribute)
+        private JwtSecurityToken CreateTokenForEasyAuthAccess(TokenBaseAttribute attribute)
         {
             if (string.IsNullOrEmpty(attribute.UserId))
             {

@@ -103,7 +103,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <returns>Authenticated GraphServiceClient</returns>
         internal async Task<IGraphServiceClient> GetMSGraphClientFromUserIdAsync(string userId)
         {
-            var attr = new TokenAttribute
+            var attr = new TokenAttribute()
             {
                 UserId = userId,
                 Resource = O365Constants.GraphBaseUrl,
@@ -119,7 +119,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="attribute">Token attribute with either principal ID or ID token</param>
         /// <returns>Authenticated GSC</returns>
-        public virtual async Task<IGraphServiceClient> GetMSGraphClientAsync(TokenAttribute attribute)
+        public virtual async Task<IGraphServiceClient> GetMSGraphClientAsync(TokenBaseAttribute attribute)
         {
             string token = await this._tokenExtension.GetAccessTokenAsync(attribute);
             string principalId = GetTokenOID(token);

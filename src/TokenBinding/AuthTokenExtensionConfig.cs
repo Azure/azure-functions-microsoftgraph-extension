@@ -110,7 +110,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// </summary>
         /// <param name="attribute">TokenAttribute with desired resource & user's principal ID or ID token</param>
         /// <returns>JWT with audience, scopes, user id</returns>
-        public async Task<string> GetAccessTokenAsync(TokenAttribute attribute)
+        public async Task<string> GetAccessTokenAsync(TokenBaseAttribute attribute)
         {
             attribute.CheckValidity();
             switch (attribute.Identity)

@@ -145,7 +145,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         {
             var clientMock = new Mock<IEasyAuthClient>();
             var responseQueue = new Queue<EasyAuthTokenStoreEntry>(responsesInOrder);
-            clientMock.Setup(client => client.GetTokenStoreEntry(It.IsAny<TokenAttribute>()))
+            clientMock.Setup(client => client.GetTokenStoreEntry(It.IsAny<TokenBaseAttribute>()))
                 .Returns(Task.FromResult(responseQueue.Dequeue()));
             return clientMock;
         }

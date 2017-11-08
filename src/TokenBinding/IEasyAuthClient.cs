@@ -9,8 +9,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
     internal interface IEasyAuthClient
     {
-        Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(TokenAttribute attribute);
+        Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(TokenBaseAttribute attribute);
 
-        Task RefreshToken(TokenAttribute attribute);
+        Task RefreshToken(TokenBaseAttribute attribute);
     }
 }

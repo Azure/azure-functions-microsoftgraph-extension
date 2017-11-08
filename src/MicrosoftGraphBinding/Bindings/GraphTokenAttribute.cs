@@ -10,7 +10,7 @@ namespace Microsoft.Azure.WebJobs
     /// Abstract attribute to be base class for all Graph-based binding attributes
     /// </summary>
     [Binding]
-    public abstract class GraphTokenAttribute : TokenAttribute
+    public abstract class GraphTokenAttribute : TokenBaseAttribute
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="GraphTokenAttribute"/> class.
