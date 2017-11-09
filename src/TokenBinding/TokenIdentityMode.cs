@@ -8,10 +8,10 @@ namespace Microsoft.Azure.WebJobs
     /// </summary>
     public enum TokenIdentityMode
     {
-        /// <summary>Same as <see cref="UserFromToken"/> with the user token taken from the X-MS-TOKEN-AAD-ID-TOKEN header. Only works for HttpTrigger</summary>
-        UserFromRequest,
         /// <summary> Obtains the access token on behalf of the user whose token is in the userToken field of metadata. </summary>
         UserFromToken,
+        /// <summary>Same as <see cref="UserFromToken"/> with the user token taken from the X-MS-TOKEN-AAD-ID-TOKEN header. Only works for HttpTrigger</summary>
+        UserFromRequest, //This cannot be the default value, as it requires binding expressions that could cause errors.
         /// <summary> Obtains the access token for the user with the id found in the userId field of metadata. </summary>
         UserFromId,
         /// <summary> Obtains the access token for the client credentials found in the application settings. </summary>

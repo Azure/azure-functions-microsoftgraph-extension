@@ -30,9 +30,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             {
                 if (_easyAuthClient == null)
                 {
-                    string hostname = _appSettings.Resolve(Constants.AppSettingWebsiteHostname);
-                    string signingKey = _appSettings.Resolve(Constants.AppSettingWebsiteAuthSigningKey);
-                    _easyAuthClient = new EasyAuthTokenClient(hostname, signingKey, _log);
+                    string hostname = AppSettings.Resolve(Constants.AppSettingWebsiteHostname);
+                    _easyAuthClient = new EasyAuthTokenClient(hostname, _log);
                 }
                 return _easyAuthClient;
             }
@@ -49,9 +48,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             {
                 if (_aadManager == null)
                 {
-                    string clientId = _appSettings.Resolve(Constants.AppSettingClientIdName);
-                    string clientSecret = _appSettings.Resolve(Constants.AppSettingClientSecretName);
-                    string tenantUrl = _appSettings.Resolve(Constants.AppSettingWebsiteAuthOpenIdIssuer);
+                    string clientId = AppSettings.Resolve(Constants.AppSettingClientIdName);
+                    string clientSecret = AppSettings.Resolve(Constants.AppSettingClientSecretName);
+                    string tenantUrl = AppSettings.Resolve(Constants.AppSettingWebsiteAuthOpenIdIssuer);
                     _aadManager = new AadClient(new ClientCredential(clientId, clientSecret), tenantUrl);
                 }
                 return _aadManager;
@@ -64,7 +63,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
         internal TraceWriter _log;
 
-        private INameResolver _appSettings;
+        internal INameResolver AppSettings { get; set; }
 
         private IAadClient _aadManager;
 
@@ -94,7 +93,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             // Set up logging
             _log = context.Trace;
 
-            _appSettings = config.NameResolver;
+            AppSettings = AppSettings ?? config.NameResolver;
         }
 
         public void Initialize(ExtensionConfigContext context)
@@ -118,7 +117,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                 case TokenIdentityMode.UserFromId:
                     // If the attribute has no identity provider, assume AAD
                     attribute.IdentityProvider = attribute.IdentityProvider ?? "AAD";
-                    var easyAuthTokenManager = new EasyAuthTokenManager(EasyAuthClient);
+                    string signingKey = AppSettings.Resolve(Constants.AppSettingWebsiteAuthSigningKey);
+                    var easyAuthTokenManager = new EasyAuthTokenManager(EasyAuthClient, _log, signingKey);
                     return await easyAuthTokenManager.GetEasyAuthAccessTokenAsync(attribute);
                 case TokenIdentityMode.UserFromToken:
                     return await GetAuthTokenFromUserToken(attribute.UserToken, attribute.Resource);
