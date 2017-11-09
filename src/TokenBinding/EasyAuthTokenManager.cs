@@ -29,17 +29,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         private readonly string _signingKey;
 
         private readonly IEasyAuthClient _client;
-        private TraceWriter _log;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EasyAuthTokenManager"/> class.
         /// </summary>
         /// <param name="hostName">The hostname of the keystore. </param>
         /// <param name="signingKey">The website authorization signing key</param>
-        public EasyAuthTokenManager(IEasyAuthClient client, TraceWriter log, string signingKey)
+        public EasyAuthTokenManager(IEasyAuthClient client, string signingKey)
         {
             _client = client;
-            _log = log;
             _signingKey = signingKey;
         }
 

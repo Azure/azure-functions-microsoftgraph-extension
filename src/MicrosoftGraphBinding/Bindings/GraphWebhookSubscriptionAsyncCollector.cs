@@ -145,8 +145,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             }
             catch (Exception ex)
             {
-                _log.Info($"Failed to renew MS Graph subscription {id}.\n Either it never existed or it has already expired.");
-
                 // If the subscription is expired, it can no longer be renewed, so delete the file
                 var subscriptionEntry = await _webhookConfig.SubscriptionStore.GetSubscriptionEntryAsync(id);
                 if (subscriptionEntry != null)
@@ -156,8 +154,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                         _webhookConfig.SubscriptionStore.DeleteAsync(id);
                     } else
                     {
-                        _log.Error("Present non-expired subscription failed to renew", ex);
+                        _log.Error("A non-expired subscription failed to renew", ex);
                     }
+                } else
+                {
+                    _log.Warning("The subscription with id " + id + " was not present in the local subscription store.");
                 }
             }
         }

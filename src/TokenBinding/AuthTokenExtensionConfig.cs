@@ -118,7 +118,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                     // If the attribute has no identity provider, assume AAD
                     attribute.IdentityProvider = attribute.IdentityProvider ?? "AAD";
                     string signingKey = AppSettings.Resolve(Constants.AppSettingWebsiteAuthSigningKey);
-                    var easyAuthTokenManager = new EasyAuthTokenManager(EasyAuthClient, _log, signingKey);
+                    var easyAuthTokenManager = new EasyAuthTokenManager(EasyAuthClient, signingKey);
                     return await easyAuthTokenManager.GetEasyAuthAccessTokenAsync(attribute);
                 case TokenIdentityMode.UserFromToken:
                     return await GetAuthTokenFromUserToken(attribute.UserToken, attribute.Resource);
