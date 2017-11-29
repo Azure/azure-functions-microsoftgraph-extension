@@ -14,15 +14,24 @@ build_script:
 - ps: >
     dotnet --version
 
+    $PackArguments = '-o', '..\buildoutput', '--no-build'
+    
+    If ($env:APPVEYOR_REPO_BRANCH -ne "master") 
+    {
+        $PackArguments = $PackArguments + '--version-suffix', '"-$env:APPVEYOR_BUILD_NUMBER"'
+    }
+    
     dotnet build -v q
 
-    dotnet pack .\TokenBinding\TokenBinding.csproj -o ..\buildoutput --no-build --version-suffix "-$env:APPVEYOR_BUILD_NUMBER"
-
-    dotnet pack .\WebJobs.Extensions.O365\WebJobs.Extensions.O365.csproj -o ..\buildoutput --no-build --version-suffix "-$env:APPVEYOR_BUILD_NUMBER"
+    dotnet pack .\src\TokenBinding\TokenBinding.csproj $PackArguments
+    
+    dotnet pack .\src\MicrosoftGraphBinding\MicrosoftGraphBinding.csproj $PackArguments
 
 test_script:
 - ps: >-
     dotnet test .\test\TokenExtension.Tests\ -v q --no-build
+    
+    dotnet test .\test\MicrosoftGraph.Tests\ -v q --no-build
 
 artifacts:
 - path: buildoutput\*.nupkg
