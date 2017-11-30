@@ -34,7 +34,7 @@ test_script:
     dotnet test .\test\MicrosoftGraph.Tests\ -v q --no-build
 
 artifacts:
-- path: buildoutput\*.nupkg
+- path: '**\*.nupkg'
   name: Binaries
 hosts:
   api.nuget.org: 93.184.221.200
