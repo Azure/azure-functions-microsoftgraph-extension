@@ -54,7 +54,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .HeaderRowRange()
                 .Request()
                 .GetAsync();
-            return headerRowRange.Values.ToObject<string[]>();
+            return headerRowRange.Values.ToObject<string[][]>()[0]; //header row array is embedded as the only element in its own array
         }
 
         public static async Task<WorkbookTableRow> PostTableRowAsync(this IGraphServiceClient client, string path, string tableName, JToken row)

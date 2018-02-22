@@ -144,9 +144,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         public static async Task Update_WorksheetWithTable_SendsPatchWithProperValues()
         {
             var clientMock = new Mock<IGraphServiceClient>();
+            string[][] headerValues = new string[][] { GetHeaderRow() };
             var headerRow = new WorkbookRange()
             {
-                Values = JToken.FromObject(GetHeaderRow())
+                Values = JToken.FromObject(headerValues)
             };
             var address = new WorkbookRange()
             {
@@ -167,7 +168,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         private static Mock<IGraphServiceClient> AppendClientMock()
         {
             var clientMock = new Mock<IGraphServiceClient>();
-            string[] headerRow = GetHeaderRow();
+            string[][] headerRow = new string[][] { GetHeaderRow() };
             var workbookRange = new WorkbookRange()
             {
                 Values = JToken.FromObject(headerRow)
@@ -360,7 +361,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName,
-                UpdateType = "Update")] ICollector<SamplePoco> rows)
+                UpdateType = "Update")] ICollector<object> rows)
             {
                 foreach (var row in GetRangeAsPocoList())
                 {
