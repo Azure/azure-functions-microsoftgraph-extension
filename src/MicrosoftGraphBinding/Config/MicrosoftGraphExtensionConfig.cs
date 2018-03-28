@@ -6,12 +6,9 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
-    using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Net.Http;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
@@ -19,9 +16,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
-    using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Bindings;
     using Microsoft.Azure.WebJobs.Host.Config;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
     using static Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters.ExcelConverters;
@@ -42,7 +39,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <summary>
         /// Used to confer information, warnings, etc. to function app log
         /// </summary>
-        internal TraceWriter _log;
+        internal ILoggerFactory _loggerFactory;
 
         internal INameResolver _appSettings;
 
@@ -56,7 +53,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             _appSettings = config.NameResolver;
 
             // Set up logging
-            _log = context.Trace;
+            _loggerFactory = context.Config.LoggerFactory;
 
             ConfigureServiceManager(context);
 
@@ -92,28 +89,26 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             // Excel
             var ExcelRule = context.AddBindingRule<ExcelAttribute>();
-
             var excelConverter = new ExcelConverter(_serviceManager);
 
             // Excel Outputs
-            ExcelRule.AddConverter<object[][], JObject>(ExcelService.CreateRows);
-            ExcelRule.AddConverter<List<OpenType>, JObject>(typeof(GenericExcelRowConverter<>)); // used to append/update lists of POCOs
-            ExcelRule.AddConverter<OpenType, JObject>(typeof(GenericExcelRowConverter<>)); // used to append/update arrays of POCOs
-            ExcelRule.BindToCollector<JObject>(excelConverter.CreateCollector);
-            ExcelRule.BindToCollector<JObject>(typeof(POCOExcelRowConverter<>));
+            ExcelRule.AddConverter<object[][], string>(ExcelService.CreateRows);
+            ExcelRule.AddOpenConverter<OpenType, string>(typeof(ExcelGenericsConverter<>), _serviceManager); // used to append/update arrays of POCOs
+            ExcelRule.BindToCollector<string>(excelConverter);
 
             // Excel Inputs
             ExcelRule.BindToInput<string[][]>(excelConverter);
             ExcelRule.BindToInput<WorkbookTable>(excelConverter);
-            ExcelRule.BindToInput<List<OpenType>>(typeof(POCOExcelRowConverter<>), _serviceManager);
-            ExcelRule.BindToInput<OpenType>(typeof(POCOExcelRowConverter<>), _serviceManager);
+            ExcelRule.BindToInput<OpenType>(typeof(ExcelGenericsConverter<>), _serviceManager);
 
             // Outlook
             var OutlookRule = context.AddBindingRule<OutlookAttribute>();
+            var outlookConverter = new OutlookConverter();
 
-            // Outlook Outputs
-            OutlookRule.AddConverter<JObject, Message>(OutlookService.CreateMessage);
-            OutlookRule.AddConverter<string, Message>(OutlookService.CreateMessage);
+            // Outlook Outputs           
+            OutlookRule.AddConverter<JObject, Message>(outlookConverter);
+            OutlookRule.AddOpenConverter<OpenType, Message>(typeof(OutlookGenericsConverter<>));
+            OutlookRule.AddConverter<string, Message>(outlookConverter);
             OutlookRule.BindToCollector<Message>(CreateCollector);
         }
 
@@ -130,7 +125,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         private IAsyncCollector<string> CreateCollector(GraphWebhookSubscriptionAttribute attr)
         {
-            return new GraphWebhookSubscriptionAsyncCollector(_serviceManager, _log, _webhookConfig, attr);
+            return new GraphWebhookSubscriptionAsyncCollector(_serviceManager, _loggerFactory, _webhookConfig, attr);
         }
 
         private IAsyncCollector<Message> CreateCollector(OutlookAttribute attr)
@@ -145,6 +140,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             return new OneDriveAsyncCollector(service, attr);
         }
 
+        //TODO: Remove once LogCategories has this method
+        internal static string CreateBindingCategory(string bindingName)
+        {
+            return $"Host.Bindings.{bindingName}";
+        }
 
         /// <summary>
         /// HttpRequest -> HttpResponse
@@ -155,7 +155,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <returns>Task with HttpResponseMessage for further processing</returns>
         async Task<HttpResponseMessage> IAsyncConverter<HttpRequestMessage, HttpResponseMessage>.ConvertAsync(HttpRequestMessage input, CancellationToken cancellationToken)
         {
-            var handler = new GraphWebhookSubscriptionHandler(_serviceManager, _webhookConfig, _log);
+            var handler = new GraphWebhookSubscriptionHandler(_serviceManager, _webhookConfig, _loggerFactory);
             var response = await handler.ProcessAsync(input);
             return response;
         }

@@ -14,6 +14,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Config;
+    using Microsoft.Extensions.Logging;
     using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
     /// <summary>
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                 if (_easyAuthClient == null)
                 {
                     string hostname = AppSettings.Resolve(Constants.AppSettingWebsiteHostname);
-                    _easyAuthClient = new EasyAuthTokenClient(hostname, _log);
+                    _easyAuthClient = new EasyAuthTokenClient(hostname, LoggerFactory);
                 }
                 return _easyAuthClient;
             }
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
         }
 
-        internal TraceWriter _log;
+        internal ILoggerFactory LoggerFactory;
 
         internal INameResolver AppSettings { get; set; }
 
@@ -69,6 +70,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
         private IEasyAuthClient _easyAuthClient;
 
+
+        //TODO: Remove once LogCategories has this method
+        internal static string CreateBindingCategory(string bindingName)
+        {
+            return $"Host.Bindings.{bindingName}";
+        }
 
         /// <summary>
         /// Retrieve audience from raw JWT
@@ -91,7 +98,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             var config = context.Config;
 
             // Set up logging
-            _log = context.Trace;
+            LoggerFactory = context.Config.LoggerFactory;
 
             AppSettings = AppSettings ?? config.NameResolver;
         }

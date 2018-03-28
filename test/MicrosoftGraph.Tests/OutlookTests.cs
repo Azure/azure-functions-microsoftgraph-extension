@@ -7,8 +7,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
-    using Microsoft.Azure.WebJobs.Extensions.Token.Tests;
     using Microsoft.Graph;
     using Moq;
     using Newtonsoft.Json.Linq;
@@ -134,7 +132,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             };
         }
 
-        private class OutlookFunctions
+        public class OutlookFunctions
         {
             public static void SendJObject([Outlook] out JObject message)
             {
