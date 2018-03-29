@@ -35,10 +35,14 @@ To install the Token extension, run the command `func extensions install --packa
 
 To install the Microsoft Graph extension, run the command `func extensions install --package Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph -v <version>`.
 
-The easiest way to utilize most of the features of these features is to configure an Azure Functions app in the Portal, add the extension, and go through the configuration to enable the proper Microsoft Graph permissions.
-Once this is accomplished, copy the values for `WEBSITE_AUTH_CLIENT_ID` and `WEBSITE_AUTH_CLIENT_SECRET` from your App Settings in Kudu into the `Values` list in the `local.settings.json` file in the directory for your functions app created by the Functions CLI.
+The easiest way to utilize most of the features of these features is to configure an Azure Functions app in the Portal, enable Authentication/Authorization, add the extension, and go through the configuration to enable the proper Microsoft Graph permissions.
 
 If you are making code changes to the extensions themselves and wish to test these locally, you can manually copy the .dll files that you build into your bin directory in your local function app's directory.
+
+App Settings to Modify in `local.settings.json`:
+- `WEBSITE_AUTH_CLIENT_ID` - Copy from your App Settings in Kudu from your configured app
+- `WEBSITE_AUTH_CLIENT_SECRET` - Copy from your App Settings in Kudu from your configured app
+- `BYOB_TokenMap` - A valid local directory that you have read/write access to
 
 ## License
 
