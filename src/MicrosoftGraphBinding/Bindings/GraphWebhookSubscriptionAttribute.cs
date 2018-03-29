@@ -53,7 +53,7 @@ namespace Microsoft.Azure.WebJobs
                 case GraphWebhookSubscriptionAction.Create:
                     if (string.IsNullOrEmpty(SubscriptionResource))
                     {
-                        throw new ArgumentException($"A value for listen must be provided in ${Action} mode.");
+                        throw new ArgumentException($"A value for {nameof(SubscriptionResource)} must be provided in ${Action} mode.");
                     }
 
                     if (ChangeTypes == null || ChangeTypes.Length == 0)
@@ -66,12 +66,12 @@ namespace Microsoft.Azure.WebJobs
                 case GraphWebhookSubscriptionAction.Refresh:
                     if (!string.IsNullOrEmpty(SubscriptionResource))
                     {
-                        throw new ArgumentException($"No value should be provided for listen in {Action} mode.");
+                        throw new ArgumentException($"No value should be provided for {nameof(SubscriptionResource)} in {Action} mode.");
                     }
 
                     if (ChangeTypes != null && ChangeTypes.Length > 0)
                     {
-                        throw new ArgumentException($"No values should be provided for changeTypes in ${Action} mode.");
+                        throw new ArgumentException($"No values should be provided for {nameof(ChangeTypes)} in ${Action} mode.");
                     }
 
                     break;
