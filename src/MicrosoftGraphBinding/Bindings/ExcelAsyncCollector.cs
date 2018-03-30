@@ -64,6 +64,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                     // No exception -- array is rectangular by default
                     consolidatedRow[O365Constants.ColsKey] = array[0].Children().Count();
                     _rows.Add(consolidatedRow);
+                } else
+                {
+                    throw new InvalidOperationException("Only nested arrays are supported for JavaScript Excel output bindings.");
                 }
                 
             }
