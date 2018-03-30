@@ -9,6 +9,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     using System.Net.Http;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Host;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
         private readonly string _baseUrl;
 
-        private readonly TraceWriter _log;
+        private readonly ILogger _log;
 
         private JwtSecurityToken _tokenForEasyAuthAccess;
 
@@ -29,10 +30,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// </summary>
         /// <param name="hostName">The hostname of the webapp </param>
         /// <param name="signingKey">The website authorization signing key</param>
-        public EasyAuthTokenClient(string hostName, TraceWriter log)
+        public EasyAuthTokenClient(string hostName, ILoggerFactory loggerFactory)
         {
             _baseUrl = "https://" + hostName + "/";
-            _log = log;
+            _log = loggerFactory.CreateLogger(AuthTokenExtensionConfig.CreateBindingCategory("AuthToken"));
         }
 
         public string GetBaseUrl()
@@ -48,10 +49,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             using (var request = new HttpRequestMessage(HttpMethod.Get, meUrl))
             {
                 request.Headers.Add("x-zumo-auth", jwt.RawData);
-                _log.Verbose($"Fetching user token data from {meUrl}");
+                _log.LogTrace($"Fetching user token data from {meUrl}");
                 using (HttpResponseMessage response = await _httpClient.SendAsync(request))
                 {
-                    _log.Verbose($"Response from '${meUrl}: {response.StatusCode}");
+                    _log.LogTrace($"Response from '${meUrl}: {response.StatusCode}");
                     if (!response.IsSuccessStatusCode)
                     {
                         string errorResponse = await response.Content.ReadAsStringAsync();
@@ -85,10 +86,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             using (var refreshRequest = new HttpRequestMessage(HttpMethod.Get, refreshUrl))
             {
                 refreshRequest.Headers.Add("x-zumo-auth", jwt.RawData);
-                _log.Verbose($"Refreshing ${attribute.IdentityProvider} access token for user ${attribute.UserId} at ${refreshUrl}");
+                _log.LogTrace($"Refreshing ${attribute.IdentityProvider} access token for user ${attribute.UserId} at ${refreshUrl}");
                 using (HttpResponseMessage response = await _httpClient.SendAsync(refreshRequest))
                 {
-                    _log.Verbose($"Response from ${refreshUrl}: {response.StatusCode}");
+                    _log.LogTrace($"Response from ${refreshUrl}: {response.StatusCode}");
                     if (!response.IsSuccessStatusCode)
                     {
                         string errorResponse = await response.Content.ReadAsStringAsync();

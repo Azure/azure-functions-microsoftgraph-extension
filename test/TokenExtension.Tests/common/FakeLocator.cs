@@ -9,9 +9,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
     public class FakeTypeLocator<T> : ITypeLocator
     {
+        public IReadOnlyList<Type> Types => new Type[] { typeof(T) };
+
         public IReadOnlyList<Type> GetTypes()
         {
-            return new Type[] { typeof(T) };
+            return Types;
         }
     }
 }
