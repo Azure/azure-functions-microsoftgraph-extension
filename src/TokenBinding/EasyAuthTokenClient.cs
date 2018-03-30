@@ -33,7 +33,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         public EasyAuthTokenClient(string hostName, ILoggerFactory loggerFactory)
         {
             _baseUrl = "https://" + hostName + "/";
-            _log = loggerFactory?.CreateLogger(AuthTokenExtensionConfig.CreateBindingCategory("AuthToken"));
+            _log = loggerFactory.CreateLogger(AuthTokenExtensionConfig.CreateBindingCategory("AuthToken"));
         }
 
         public string GetBaseUrl()

@@ -12,7 +12,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Azure.WebJobs.Host.Config;
     using Microsoft.Extensions.Logging;
     using Microsoft.IdentityModel.Clients.ActiveDirectory;
@@ -71,7 +70,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         private IEasyAuthClient _easyAuthClient;
 
 
-        //TODO: Remove once LogCategories has this method
+        //TODO: https://github.com/Azure/azure-functions-microsoftgraph-extension/issues/48
         internal static string CreateBindingCategory(string bindingName)
         {
             return $"Host.Bindings.{bindingName}";
@@ -96,10 +95,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         public void InitializeAllExceptRules(ExtensionConfigContext context)
         {
             var config = context.Config;
-
             // Set up logging
-            LoggerFactory = context.Config.LoggerFactory;
-
+            LoggerFactory = context.Config.LoggerFactory ?? throw new ArgumentNullException("No logger present");
             AppSettings = AppSettings ?? config.NameResolver;
         }
 

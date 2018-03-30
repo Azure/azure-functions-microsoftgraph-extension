@@ -154,7 +154,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                         _webhookConfig.SubscriptionStore.DeleteAsync(id);
                     } else
                     {
-                        _log.LogError("A non-expired subscription failed to renew", ex);
+                        _log.LogError(ex, "A non-expired subscription failed to renew");
                     }
                 } else
                 {

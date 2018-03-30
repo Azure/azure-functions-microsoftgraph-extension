@@ -16,8 +16,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
             // Set up recipient(s)
             List<Recipient> recipientList = new List<Recipient>();
 
-            JToken recipientToken = GetPropertyValueIgnoreCase<JToken>(input, "recipient", false)
-                ?? GetPropertyValueIgnoreCase<JToken>(input, "recipients", false);
+            JToken recipientToken = GetPropertyValueIgnoreCase<JToken>(input, "recipient", throwException: false)
+                ?? GetPropertyValueIgnoreCase<JToken>(input, "recipients", throwException: false);
 
             if (recipientToken == null)
             {
@@ -51,7 +51,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
                     EmailAddress = new EmailAddress
                     {
                         Address = GetPropertyValueIgnoreCase<string>(recip, "address"),
-                        Name = GetPropertyValueIgnoreCase<string>(recip, "name", false),
+                        Name = GetPropertyValueIgnoreCase<string>(recip, "name", throwException: false),
                     },
                 };
                 recipientList.Add(recipient);

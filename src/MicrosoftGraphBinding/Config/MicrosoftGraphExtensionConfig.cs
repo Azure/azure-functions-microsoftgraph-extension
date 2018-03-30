@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Net.Http;
@@ -53,7 +54,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             _appSettings = config.NameResolver;
 
             // Set up logging
-            _loggerFactory = context.Config.LoggerFactory;
+            _loggerFactory = context.Config.LoggerFactory ?? throw new ArgumentNullException("No logger present");
 
             ConfigureServiceManager(context);
 
@@ -140,7 +141,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             return new OneDriveAsyncCollector(service, attr);
         }
 
-        //TODO: Remove once LogCategories has this method
+        //TODO: https://github.com/Azure/azure-functions-microsoftgraph-extension/issues/48
         internal static string CreateBindingCategory(string bindingName)
         {
             return $"Host.Bindings.{bindingName}";

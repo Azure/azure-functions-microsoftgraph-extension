@@ -65,10 +65,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
             }
 
             /// <summary>
-            /// Convert from POCO -> JObject (either row or rows)
+            /// Convert from POCO -> string (either row or rows)
             /// </summary>
             /// <param name="input">POCO input from fx</param>
-            /// <returns>JObject with proper keys set</returns>
+            /// <returns>String representation of JSON</returns>
             public string Convert(T input)
             {
                 // handle T[]
