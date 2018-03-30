@@ -15,7 +15,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// <summary>
     /// Collector class used to accumulate and then dispatch requests to MS Graph related to Excel
     /// </summary>
-    internal class ExcelAsyncCollector : IAsyncCollector<JObject>
+    internal class ExcelAsyncCollector : IAsyncCollector<string>
     {
         private readonly ExcelService _manager;
         private readonly ExcelAttribute _attribute;
@@ -39,14 +39,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <param name="item">JObject to be added (contains table, worksheet, etc. data)</param>
         /// <param name="cancellationToken">Used to propagate notifications</param>
         /// <returns>Task representing the addition of the JObject</returns>
-        public Task AddAsync(JObject item, CancellationToken cancellationToken = default(CancellationToken))
+        public Task AddAsync(string item, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (item == null)
             {
                 throw new ArgumentNullException("No row item");
             }
 
-            this._rows.Add(item);
+            this._rows.Add(JObject.Parse(item));
             return Task.CompletedTask;
         }
 

@@ -47,23 +47,23 @@ namespace GraphExtensionSamples
         //Updating an excel table
 
         [NoAutomaticTrigger]
-        public static void UpdateEntireExcelTabletWithPoco(
+        public static void UpdateEntireExcelTableWithPocos(
             [Excel(
             Path = "TestSheet.xlsx",
             WorksheetName = "Sheet1",
             TableName = "Parts",
             UserId = "%UserId%",
             UpdateType = "Update",
-            Identity = TokenIdentityMode.UserFromId)] out List<PartsTableRow> output)
+            Identity = TokenIdentityMode.UserFromId)] out PartsTableRow[] output)
         {
-            output = new List<PartsTableRow>();
-            output.Add(new PartsTableRow
+            output = new PartsTableRow[2];
+            output[0] = (new PartsTableRow
             {
                 Part = "part1",
                 Id = 35,
                 Price = 0.75
             });
-            output.Add(new PartsTableRow
+            output[1] = (new PartsTableRow
             {
                 Part = "part2",
                 Id = 73,
@@ -98,10 +98,10 @@ namespace GraphExtensionSamples
             WorksheetName = "Sheet1",
             TableName = "sampletable",
             UserId = "%UserId%",
-            Identity = TokenIdentityMode.UserFromId)] List<PartsTableRow> table)
+            Identity = TokenIdentityMode.UserFromId)] PartsTableRow table)
         {
             //Note that each POCO object represents one row, and the values correspond to
-            //the column titles that match the POCO's property names. A POCO array can also be used.
+            //the column titles that match the POCO's property names.
         }
 
         public class PartsTableRow

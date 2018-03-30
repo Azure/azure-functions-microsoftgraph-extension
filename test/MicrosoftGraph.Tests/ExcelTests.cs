@@ -17,7 +17,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         private static WorkbookTable finalTable;
         private static string[][] finalRange;
         private static SamplePoco[] finalRangePocoArray;
-        private static List<SamplePoco> finalRangePocoList;
 
         private const string path = "sample/path";
         private const string tableName = "tableName";
@@ -84,19 +83,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
-        public static async Task Input_WorksheetRangeAsPocoList_ReturnsExpectedValue()
-        {
-            string[][] range = GetRangeAsJaggedStringArray();
-            var clientMock = GetWorksheetClientMock(range);
-
-            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetExcelWorksheetRangePocoList");
-
-            var expectedResult = JsonConvert.SerializeObject(GetRangeAsPocoList());
-            Assert.Equal(expectedResult, JsonConvert.SerializeObject(finalRangePocoList));
-            ResetState();
-        }
-
-        [Fact]
         public static async Task Append_RowsWithStringJaggedArray_SendsPostWithProperValues()
         {
             var clientMock = AppendClientMock();
@@ -113,17 +99,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = AppendClientMock();
 
             await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPoco");
-
-            clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
-            ResetState();
-        }
-
-        [Fact]
-        public static async Task Append_RowsWithPocoList_SendsPostWithProperValues()
-        {
-            var clientMock = AppendClientMock();
-
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPocoList");
 
             clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
             ResetState();
@@ -274,7 +249,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             finalTable = null;
             finalRange = null;
             finalRangePocoArray = null;
-            finalRangePocoList = null;
         }
 
         private class ExcelInputFunctions
@@ -308,14 +282,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 WorksheetName = worksheetName)] SamplePoco[] range)
             {
                 finalRangePocoArray = range;
-            }
-
-            public void GetExcelWorksheetRangePocoList(
-                [Excel(
-                Path = path,
-                WorksheetName = worksheetName)] List<SamplePoco> range)
-            {
-                finalRangePocoList = range;
             }
         }
 
@@ -361,7 +327,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 Path = path,
                 WorksheetName = worksheetName,
                 TableName = tableName,
-                UpdateType = "Update")] ICollector<object> rows)
+                UpdateType = "Update")] ICollector<SamplePoco> rows)
             {
                 foreach (var row in GetRangeAsPocoList())
                 {

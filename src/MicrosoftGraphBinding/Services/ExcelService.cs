@@ -98,18 +98,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         }
 
         /// <summary>
-        /// Returns either an Excel table or entire worksheet depending on user settings
-        /// </summary>
-        /// <param name="client">GraphServiceClient that makes request</param>
-        /// <param name="attr">Contains metadata (path, tablename, worksheet name) </param>
-        /// <returns>List<POCO> where a single POCO represents the values of one row</returns>
-        internal async Task<List<T>> GetExcelRangePOCOListAsync<T>(ExcelAttribute attr)
-        {
-            return new List<T>(await GetExcelRangePOCOAsync<T>(attr));
-        }
-
-
-        /// <summary>
         /// Add row from a Function's dynamic input
         /// </summary>
         /// <param name="client">MS Graph client used to send request</param>
@@ -231,7 +219,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="rowsArray">2D object array; each row will later be inserted into the Excel table</param>
         /// <returns>JObject with ("values", converted object[][]) pair</returns>
-        internal static JObject CreateRows(object[][] rowsArray)
+        internal static string CreateRows(object[][] rowsArray)
         {
             // Convert object[]][] to JArray
             JArray rowData = JArray.FromObject(rowsArray);
@@ -263,7 +251,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 jsonContent[O365Constants.ColsKey] = rowsArray[0].Length;
             }
 
-            return jsonContent;
+            return jsonContent.ToString();
         }
 
         /// <summary>
