@@ -7,7 +7,7 @@
 
     <PackageId>Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph</PackageId>
     <Description>This extension adds bindings for EventGrid</Description>
-    <Version>1.0.0-beta2$(VersionSuffix)</Version>
+    <Version>1.0.0-beta3$(VersionSuffix)</Version>
     <CommitHash Condition="$(CommitHash) == ''">N/A</CommitHash>
     <InformationalVersion>$(Version) Commit hash: $(CommitHash)</InformationalVersion>    
     
