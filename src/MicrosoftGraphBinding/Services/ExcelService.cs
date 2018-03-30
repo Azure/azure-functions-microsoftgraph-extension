@@ -104,7 +104,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="attr">Excel Attribute with necessary data (workbook name, table name) to build request</param>
         /// <param name="jsonContent">JObject with the data to be added to the table</param>
         /// <returns>WorkbookTableRow that was just added</returns>
-        internal async Task<WorkbookTableRow> AddRow(ExcelAttribute attr, JObject jsonContent)
+        internal async Task AddRow(ExcelAttribute attr, JObject jsonContent)
         {
             /*
              * Two options:
@@ -121,14 +121,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             }
             else if (jsonContent[O365Constants.ValuesKey] != null)
             {
-                newRow = jsonContent;
+                newRow = jsonContent[O365Constants.ValuesKey];
             }
             else
             {
                 throw new KeyNotFoundException($"When appending a row, the '{O365Constants.ValuesKey}' or '{O365Constants.POCOKey}' key must be set");
             }
 
-            return await _client.PostTableRowAsync(attr.Path, attr.TableName, newRow);
+            await _client.PostTableRowAsync(attr.Path, attr.TableName, newRow);
         }
 
         /// <summary>
