@@ -121,7 +121,65 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         }
 
         [Fact]
+        public static async Task Append_RowsNode_SendsPostWithProperValues()
+        {
+            var clientMock = AppendClientMock();
+
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowNode");
+
+            string[][] allRows = GetAllButHeaderRow();
+            clientMock.VerifyPostTableRowAsync(path, tableName, token => ValuesEqual(allRows, token));
+            ResetState();
+        }
+
+        [Fact]
+        public static async Task Update_WorksheetWithJaggedArray_SendsPatchWithProperValues()
+        {
+            var clientMock = UpdateClientMock();
+
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheetJaggedArray");
+            string[][] allRows = GetAllButHeaderRow();
+            clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsJaggedArray(range.Values, allRows));
+
+            ResetState();
+        }
+
+        [Fact]
         public static async Task Update_WorksheetWithTable_SendsPatchWithProperValues()
+        {
+            var clientMock = UpdateClientMock();
+
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheet");
+            string[][] allRows = GetAllButHeaderRow();
+            clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsJaggedArray(range.Values, allRows));
+            ResetState();
+        }
+
+        [Fact]
+        public static async Task Update_WorksheetNode_SendsPatchWithProperValues()
+        {
+            var clientMock = UpdateClientMock();
+
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheetNode");
+            string[][] allRows = GetAllButHeaderRow();
+            clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsJaggedArray(range.Values, allRows));
+            ResetState();
+        }
+
+        private static Mock<IGraphServiceClient> AppendClientMock()
+        {
+            var clientMock = new Mock<IGraphServiceClient>();
+            string[][] headerRow = new string[][] { GetHeaderRow() };
+            var workbookRange = new WorkbookRange()
+            {
+                Values = JToken.FromObject(headerRow)
+            };
+            clientMock.MockGetTableHeaderRowAsync(workbookRange);
+            clientMock.MockPostTableRowAsyc(null);
+            return clientMock;
+        }
+
+        private static Mock<IGraphServiceClient> UpdateClientMock()
         {
             var clientMock = new Mock<IGraphServiceClient>();
             string[][] headerValues = new string[][] { GetHeaderRow() };
@@ -138,24 +196,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             clientMock.MockGetTableHeaderRowAsync(headerRow);
             clientMock.MockGetWorkSheetWorkbookInRangeAsync(workbookInRange);
             clientMock.MockPatchWorksheetAsync(null);
-
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheet");
-            SamplePoco[] samplePocos = GetRangeAsPocoArray();
-            clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsPocos(range.Values, samplePocos));
-
-            ResetState();
-        }
-
-        private static Mock<IGraphServiceClient> AppendClientMock()
-        {
-            var clientMock = new Mock<IGraphServiceClient>();
-            string[][] headerRow = new string[][] { GetHeaderRow() };
-            var workbookRange = new WorkbookRange()
-            {
-                Values = JToken.FromObject(headerRow)
-            };
-            clientMock.MockGetTableHeaderRowAsync(workbookRange);
-            clientMock.MockPostTableRowAsyc(null);
             return clientMock;
         }
 
@@ -223,13 +263,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             return true;
         }
 
-        private static bool JTokenEqualsPocos(JToken token, IEnumerable<SamplePoco> pocos)
+        private static bool JTokenEqualsJaggedArray(JToken token, string[][] rows)
         {
             string[,] stringMultiArray = token.ToObject<JArray>().ToObject<string[,]>();
             int index = 0;
-            foreach (var poco in pocos)
+            foreach (var row in rows)
             {
-                if(!string.Equals(stringMultiArray[index, 0], poco.Name) || !string.Equals(stringMultiArray[index,1], poco.Value))
+                if (!string.Equals(stringMultiArray[index, 0], row[0]) || !string.Equals(stringMultiArray[index, 1], row[1]))
                 {
                     return false;
                 }
@@ -259,6 +299,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         private static List<SamplePoco> GetRangeAsPocoList()
         {
             return new List<SamplePoco>(GetRangeAsPocoArray());
+        }
+
+        private static string GetRangeAsNodeNestedArray()
+        {
+            return "[[\"Name1\", \"Value1\"],[\"Name2\", \"Value2\"]]";
         }
 
         private static void ResetState()
@@ -334,6 +379,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 }
             }
 
+            public void AppendRowNode(
+                [Excel(
+                Path = path,
+                WorksheetName = worksheetName,
+                TableName = tableName)] out string rows)
+            {
+                rows = GetRangeAsNodeNestedArray();
+            }
+
             public void UpdateWorksheet([Excel(
                 Path = path,
                 WorksheetName = worksheetName,
@@ -344,6 +398,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 {
                     rows.Add(row);
                 }
+            }
+
+            public void UpdateWorksheetJaggedArray([Excel(
+                Path = path,
+                WorksheetName = worksheetName,
+                TableName = tableName,
+                UpdateType = "Update")] out object[][] rows)
+            {
+                rows = ConvertJaggedArrayType(GetAllButHeaderRow());
+            }
+
+            public void UpdateWorksheetNode([Excel(
+                Path = path,
+                WorksheetName = worksheetName,
+                TableName = tableName,
+                UpdateType = "Update")] out string rows)
+            {
+                rows = GetRangeAsNodeNestedArray();
             }
         }
 
