@@ -4,6 +4,7 @@
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
+    using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Linq;
     using System.Threading;
@@ -19,7 +20,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     {
         private readonly ExcelService _manager;
         private readonly ExcelAttribute _attribute;
-        private readonly Collection<JObject> _rows;
+        private readonly List<JObject> _rows;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ExcelAsyncCollector"/> class.
@@ -30,28 +31,52 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         {
             _manager = manager;
             _attribute = attribute;
-            _rows = new Collection<JObject>();
+            _rows = new List<JObject>();
         }
 
         /// <summary>
-        /// Add a JObject to the list of JObjects that need to be processed
+        /// Add a string representation of a JObject to the list of items that need to be processed
         /// </summary>
-        /// <param name="item">JObject to be added (contains table, worksheet, etc. data)</param>
+        /// <param name="item">JSON string to be added (contains table, worksheet, etc. data)</param>
         /// <param name="cancellationToken">Used to propagate notifications</param>
-        /// <returns>Task representing the addition of the JObject</returns>
+        /// <returns>Task representing the addition of the item</returns>
         public Task AddAsync(string item, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (item == null)
             {
-                throw new ArgumentNullException("No row item");
+                throw new ArgumentNullException(nameof(item));
             }
-
-            this._rows.Add(JObject.Parse(item));
+            JToken parsedToken = JToken.Parse(item);
+            if (parsedToken is JObject)
+            {
+                _rows.Add(parsedToken as JObject);
+            }
+            else
+            {
+                //JavaScript Array, so add metadata manually
+                var array = parsedToken as JArray;
+                bool arrayIsNested = array.All(element => element is JArray);
+                if (arrayIsNested)
+                {
+                    var consolidatedRow = new JObject();
+                    consolidatedRow[O365Constants.ValuesKey] = array;
+                    consolidatedRow[O365Constants.RowsKey] = array.Count;
+                    // No exception -- array is rectangular by default
+                    consolidatedRow[O365Constants.ColsKey] = array[0].Children().Count();
+                    _rows.Add(consolidatedRow);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Only nested arrays are supported for Excel output bindings.");
+                }
+                
+            }
+            
             return Task.CompletedTask;
         }
 
         /// <summary>
-        /// Execute all of the JObjects in the collector
+        /// Send all of the items in the collector to Microsoft Graph API
         /// </summary>
         /// <param name="cancellationToken">Used to propagate notifications</param>
         /// <returns>Task representing the flushing of the collector</returns>
@@ -64,7 +89,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             // Distinguish between appending and updating
             if (this._attribute.UpdateType != null && this._attribute.UpdateType == "Update")
             {
-                if(_rows.FirstOrDefault(row => row["column"] != null && row["value"] != null) != null)
+                if (_rows.FirstOrDefault(row => row["column"] != null && row["value"] != null) != null)
                 {
                     foreach (var row in this._rows)
                     {
@@ -80,7 +105,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                             await _manager.UpdateWorksheet(this._attribute, row);
                         }
                     }
-                } else if (_rows.Count > 0)
+                }
+                else if (_rows.Count > 0)
                 {
                     // Update whole worksheet at once
                     JObject consolidatedRows = GetConsolidatedRows(_rows);
@@ -99,22 +125,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             this._rows.Clear();
         }
 
-        public JObject GetConsolidatedRows(Collection<JObject> rows)
+        public JObject GetConsolidatedRows(List<JObject> rows)
         {
             JObject consolidatedRows = new JObject();
-            if (rows.Count > 0)
+            if (rows.Count > 0 && rows[0][O365Constants.ValuesKey] == null)
             {
-                // List<T> -> JArray
+                //Each row is a POCO, so make it one value, and consolidate into one row
                 consolidatedRows[O365Constants.ValuesKey] = JArray.FromObject(rows);
-
-                // Set rows, columns needed if updating entire worksheet
                 consolidatedRows[O365Constants.RowsKey] = rows.Count;
-
                 // No exception -- array is rectangular by default
                 consolidatedRows[O365Constants.ColsKey] = rows[0].Children().Count();
-
                 // Set POCO key to indicate that the values need to be ordered to match the header of the existing table
                 consolidatedRows[O365Constants.POCOKey] = rows[0][O365Constants.POCOKey];
+            }
+            else if (rows.Count == 1 && rows[0][O365Constants.ValuesKey] != null)
+            {
+                return rows[0];
+            }
+            else
+            {
+                var rowsAsString = $"[ {string.Join(", ", rows.Select(jobj => jobj.ToString()))} ]";
+                throw new InvalidOperationException($"Could not consolidate the following rows: {rowsAsString}");
             }
             return consolidatedRows;
         }
