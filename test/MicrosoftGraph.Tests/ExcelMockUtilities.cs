@@ -98,6 +98,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
         public static void VerifyPostTableRowAsync(this Mock<IGraphServiceClient> mock, string path, string tableName, Expression<Func<JToken,bool>> rowCondition)
         {
+            //first verify PostAsync() called
             mock.Verify(client => client
                 .Me
                 .Drive
@@ -106,10 +107,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Workbook
                 .Tables[tableName]
                 .Rows
-                .Add(null, It.Is<JToken>(rowCondition))
+                .Add(null, It.IsAny<JToken>())
                 .Request(null)
-                .PostAsync()
-            );
+                .PostAsync());
+
+            //Now verify row condition is true
+            mock.Verify(client => client
+                .Me
+                .Drive
+                .Root
+                .ItemWithPath(path)
+                .Workbook
+                .Tables[tableName]
+                .Rows
+                .Add(null, It.Is<JToken>(rowCondition)));
         }
 
         public static void MockPatchWorksheetAsync(this Mock<IGraphServiceClient> mock, WorkbookRange returnValue)
