@@ -16,13 +16,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
         internal class ExcelConverter : 
             IAsyncConverter<ExcelAttribute, string[][]>,
             IAsyncConverter<ExcelAttribute, WorkbookTable>,
-            IAsyncConverter<ExcelAttribute, IAsyncCollector<string>>
+            IAsyncConverter<ExcelAttribute, IAsyncCollector<string>>,
+            IConverter<JObject, string>
         {
             private readonly ServiceManager _serviceManager;
 
             public ExcelConverter(ServiceManager serviceManager)
             {
                 _serviceManager = serviceManager;
+            }
+
+            public string Convert(JObject input)
+            {
+                return input.ToString();
             }
 
             async Task<IAsyncCollector<string>> IAsyncConverter<ExcelAttribute, IAsyncCollector<string>>.ConvertAsync(ExcelAttribute attr, CancellationToken token)
