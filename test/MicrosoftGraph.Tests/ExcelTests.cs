@@ -89,7 +89,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
             await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowJaggedArray");
 
-            clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
+            string[][] allRows = GetAllButHeaderRow();
+            clientMock.VerifyPostTableRowAsync(path, tableName, token => ValuesEqual(allRows, token));
             ResetState();
         }
 
@@ -99,19 +100,23 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = AppendClientMock();
 
             await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPoco");
-
-            clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
+            string[][] allRows = GetAllButHeaderRow();
+            clientMock.VerifyPostTableRowAsync(path, tableName, token => ValuesEqual(allRows[0], token));
             ResetState();
         }
 
         [Fact]
-        public static async Task Append_RowsWithPocoArray_SendsPostWithProperValues()
+        public static async Task Append_RowsWithPocoCollector_SendsPostWithProperValues()
         {
             var clientMock = AppendClientMock();
 
             await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPocoArray");
 
-            clientMock.VerifyPostTableRowAsync(path, tableName, token => JTokenEqualsAllButHeaderRow(token));
+            string[][] allRows = GetAllButHeaderRow();
+            foreach (var row in allRows)
+            {
+                clientMock.VerifyPostTableRowAsync(path, tableName, token => ValuesEqual(row, token));
+            }
             ResetState();
         }
 
@@ -135,8 +140,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             clientMock.MockPatchWorksheetAsync(null);
 
             await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheet");
-            var samplePocos = GetRangeAsPocoArray();
+            SamplePoco[] samplePocos = GetRangeAsPocoArray();
             clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsPocos(range.Values, samplePocos));
+
             ResetState();
         }
 
@@ -189,18 +195,29 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             return jaggedObjectArray;
         }
 
-        private static bool JTokenEqualsAllButHeaderRow(JToken value)
+        private static bool ValuesEqual(string[] expectedValue, JToken actualValue)
         {
             var allButHeaderRow = ConvertJaggedArrayType(GetAllButHeaderRow());
-            var values = value.ToObject<JObject>()[O365Constants.ValuesKey].ToObject<object[][]>();
-            for(int rowIndex = 0; rowIndex < allButHeaderRow.Length; rowIndex++)
+            var value = actualValue.ToObject<JArray>().ToObject<string[][]>()[0];
+            for(int i = 0; i < expectedValue.Length; i++)
             {
-                for(int columnIndex = 0; columnIndex < allButHeaderRow[rowIndex].Length; columnIndex++)
+                if(expectedValue[i] != value[i])
                 {
-                    if(allButHeaderRow[rowIndex][columnIndex] != values[rowIndex][columnIndex])
-                    {
-                        return false;
-                    }
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool ValuesEqual(string[][] expectedValue, JToken actualValue)
+        {
+            var allButHeaderRow = ConvertJaggedArrayType(GetAllButHeaderRow());
+            var value = actualValue.ToObject<JArray>().ToObject<string[][]>()[0];
+            for (int i = 0; i < expectedValue.Length; i++)
+            {
+                if (expectedValue[0][i] != value[i])
+                {
+                    return false;
                 }
             }
             return true;
@@ -305,22 +322,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 row = GetRangeAsPocoArray()[0];
             }
 
-            public void AppendRowPocoList(
-                [Excel(
-                Path = path,
-                WorksheetName = worksheetName,
-                TableName = tableName)] out List<SamplePoco> rows)
-            {
-                rows = GetRangeAsPocoList();
-            }
-
             public void AppendRowPocoArray(
                 [Excel(
                 Path = path,
                 WorksheetName = worksheetName,
-                TableName = tableName)] out SamplePoco[] rows)
+                TableName = tableName)] ICollector<SamplePoco> rows)
             {
-                rows = GetRangeAsPocoArray();
+                foreach (var row in GetRangeAsPocoList())
+                {
+                    rows.Add(row);
+                }
             }
 
             public void UpdateWorksheet([Excel(

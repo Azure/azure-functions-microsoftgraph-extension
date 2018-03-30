@@ -37,12 +37,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 
         public static void VerifyGetOneDriveContentStreamFromShareAsync(this Mock<IGraphServiceClient> mock, string shareToken)
         {
+            //First verify GetAsync() called
             mock.Verify(client => client
                 .Shares[shareToken]
                 .Root
                 .Content
                 .Request(null)
                 .GetAsync());
+
+            //Then verify sharetoken correct
+            mock.Verify(client => client
+                .Shares[shareToken]);
         }
 
         public static void MockGetOneDriveItemAsync(this Mock<IGraphServiceClient> mock, DriveItem returnValue)

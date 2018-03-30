@@ -14,28 +14,34 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         public static void MockSendMessage(this Mock<IGraphServiceClient> mock)
         {
             mock.Setup(client => client
-            .Me
-            .SendMail(It.IsAny<Message>(), true)
-            .Request(null)
-            .PostAsync()).Returns(Task.CompletedTask);
+                .Me
+                .SendMail(It.IsAny<Message>(), true)
+                .Request(null)
+                .PostAsync()).Returns(Task.CompletedTask);
         }
 
         public static void VerifySendMessage(this Mock<IGraphServiceClient> mock, Expression<Func<Message, bool>> messageCondition)
         {
+            // First verify PostAsync() called
             mock.Verify(client => client
-            .Me
-            .SendMail(It.Is<Message>(messageCondition), true)
-            .Request(null)
-            .PostAsync());
+                .Me
+                .SendMail(It.IsAny<Message>(), true)
+                .Request(null)
+                .PostAsync());
+
+            // Now verify that message condition holds for sent message
+            mock.Verify(client => client
+                .Me
+                .SendMail(It.Is<Message>(messageCondition), true));
         }
 
         public static void VerifyDidNotSendMessage(this Mock<IGraphServiceClient> mock)
         {
             mock.Verify(client => client
-            .Me
-            .SendMail(It.IsAny<Message>(), true)
-            .Request(null)
-            .PostAsync(), Times.Never());
+                .Me
+                .SendMail(It.IsAny<Message>(), true)
+                .Request(null)
+                .PostAsync(), Times.Never());
         }
     }
 }

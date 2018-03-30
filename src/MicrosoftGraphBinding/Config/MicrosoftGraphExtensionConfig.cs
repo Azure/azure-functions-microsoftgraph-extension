@@ -94,6 +94,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
             // Excel Outputs
             ExcelRule.AddConverter<object[][], string>(ExcelService.CreateRows);
+            ExcelRule.AddConverter<JObject, string>(excelConverter);
             ExcelRule.AddOpenConverter<OpenType, string>(typeof(ExcelGenericsConverter<>), _serviceManager); // used to append/update arrays of POCOs
             ExcelRule.BindToCollector<string>(excelConverter);
 
