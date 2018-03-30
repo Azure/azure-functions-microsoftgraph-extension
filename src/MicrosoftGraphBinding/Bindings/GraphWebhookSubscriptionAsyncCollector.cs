@@ -10,7 +10,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
-    using Microsoft.Azure.WebJobs.Host;
+    using Microsoft.Extensions.Logging;
     using Microsoft.Graph;
 
     /// <summary>
@@ -19,7 +19,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     internal class GraphWebhookSubscriptionAsyncCollector : IAsyncCollector<string>
     {
         private readonly ServiceManager _extension; // already has token
-        private readonly TraceWriter _log;
+        private readonly ILogger _log;
         private readonly GraphWebhookConfig _webhookConfig;
 
         // User attribute that we're bound against.
@@ -28,10 +28,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         private List<string> _values;
 
-        public GraphWebhookSubscriptionAsyncCollector(ServiceManager extension, TraceWriter log, GraphWebhookConfig config, GraphWebhookSubscriptionAttribute attribute)
+        public GraphWebhookSubscriptionAsyncCollector(ServiceManager extension, ILoggerFactory logFactory, GraphWebhookConfig config, GraphWebhookSubscriptionAttribute attribute)
         {
             _extension = extension;
-            _log = log;
+            _log = logFactory?.CreateLogger(MicrosoftGraphExtensionConfig.CreateBindingCategory("GraphWebhook"));
             _webhookConfig = config;
             _attribute = attribute;
             _values = new List<string>();
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             var subscriptions = _values.Select(GetSubscription);
             foreach (var subscription in subscriptions)
             {
-                _log.Verbose($"Sending a request to {_webhookConfig.NotificationUrl} expecting a 200 response for a subscription to {subscription.Resource}");
+                _log.LogTrace($"Sending a request to {_webhookConfig.NotificationUrl} expecting a 200 response for a subscription to {subscription.Resource}");
                 var newSubscription = await client.Subscriptions.Request().AddAsync(subscription);
                 await cache.SaveSubscriptionEntryAsync(newSubscription, userInfo.Id);
             }
@@ -106,11 +106,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             try
             {
                 await client.Subscriptions[id].Request().DeleteAsync();
-                _log.Info($"Successfully deleted MS Graph subscription {id}.");
+                _log.LogInformation($"Successfully deleted MS Graph subscription {id}.");
             }
             catch
             {
-                _log.Info($"Failed to delete MS Graph subscription {id}.\n Either it never existed or it has already expired.");
+                _log.LogWarning($"Failed to delete MS Graph subscription {id}.\n Either it never existed or it has already expired.");
             }
             finally
             {
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
                 var result = await client.Subscriptions[id].Request().UpdateAsync(subscription);
 
-                _log.Info($"Successfully renewed MS Graph subscription {id}. \n Active until {subscription.ExpirationDateTime}");
+                _log.LogInformation($"Successfully renewed MS Graph subscription {id}. \n Active until {subscription.ExpirationDateTime}");
             }
             catch (Exception ex)
             {
@@ -154,11 +154,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                         _webhookConfig.SubscriptionStore.DeleteAsync(id);
                     } else
                     {
-                        _log.Error("A non-expired subscription failed to renew", ex);
+                        _log.LogError(ex, "A non-expired subscription failed to renew");
                     }
                 } else
                 {
-                    _log.Warning("The subscription with id " + id + " was not present in the local subscription store.");
+                    _log.LogWarning("The subscription with id " + id + " was not present in the local subscription store.");
                 }
             }
         }

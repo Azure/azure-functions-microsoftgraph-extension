@@ -14,6 +14,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Azure.WebJobs.Host;
+    using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
 
@@ -21,14 +22,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     internal class GraphWebhookSubscriptionHandler
     {
         private readonly GraphWebhookConfig _config; // already has token
-        private readonly TraceWriter _log;
+        private readonly ILogger _log;
         private readonly ServiceManager _manager;
 
-        public GraphWebhookSubscriptionHandler(ServiceManager manager, GraphWebhookConfig config, TraceWriter log)
+        public GraphWebhookSubscriptionHandler(ServiceManager manager, GraphWebhookConfig config, ILoggerFactory loggerFactory)
         {
             _manager = manager;
             _config = config;
-            _log = log;
+            _log = loggerFactory?.CreateLogger(MicrosoftGraphExtensionConfig.CreateBindingCategory("GraphWebhookSubscription"));
         }
 
         private async Task HandleNotifications(NotificationPayload notifications)
@@ -44,14 +45,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 var entry = await subscriptionStore.GetSubscriptionEntryAsync(subId);
                 if (entry == null)
                 {
-                    _log.Error($"No subscription exists in our store for subscription id: {subId}");
+                    _log.LogError($"No subscription exists in our store for subscription id: {subId}");
                     // mapping of subscription ID to principal ID does not exist in file system
                     continue;
                 }
 
                 if (entry.Subscription.ClientState != notification.ClientState)
                 {
-                    _log.Verbose($"The subscription store's client state: {entry.Subscription.ClientState} did not match the notifications's client state: {notification.ClientState}");
+                    _log.LogTrace($"The subscription store's client state: {entry.Subscription.ClientState} did not match the notifications's client state: {notification.ClientState}");
                     // Stored client state does not match client state we just received
                     continue;
                 }
@@ -60,7 +61,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 var userId = entry.UserId;
                 var graphClient = await _manager.GetMSGraphClientFromUserIdAsync(userId);
 
-                _log.Verbose($"A graph client was obtained for subscription id: {subId}");
+                _log.LogTrace($"A graph client was obtained for subscription id: {subId}");
 
                 // Prepend with / if necessary
                 if (notification.Resource[0] != '/')
@@ -76,13 +77,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                     RequestUri = new Uri(url),
                 };
 
-                _log.Verbose($"Making a GET request to {url} on behalf of subId: {subId}");
+                _log.LogTrace($"Making a GET request to {url} on behalf of subId: {subId}");
 
                 await graphClient.AuthenticationProvider.AuthenticateRequestAsync(request); // Add authentication header
                 var response = await graphClient.HttpProvider.SendAsync(request);
                 string responseContent = await response.Content.ReadAsStringAsync();
 
-                _log.Verbose($"Recieved {responseContent} from request to {url}");
+                _log.LogTrace($"Recieved {responseContent} from request to {url}");
 
                 var actualPayload = JObject.Parse(responseContent);
 
@@ -112,11 +113,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 resources.Add(data);
             }
 
-            _log.Verbose($"Triggering {resources.Count} GraphWebhookTriggers");
+            _log.LogTrace($"Triggering {resources.Count} GraphWebhookTriggers");
             Task[] webhookReceipts = resources.Select(item => _config.OnWebhookReceived(item)).ToArray();
 
             Task.WaitAll(webhookReceipts);
-            _log.Verbose($"Finished responding to notifications.");
+            _log.LogTrace($"Finished responding to notifications.");
         }
 
         // See here for subscribing and payload information.
@@ -138,7 +139,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         private HttpResponseMessage HandleInitialValidation(string validationToken)
         {
-            _log.Verbose($"Returning a 200 OK Response to a request to {_config.NotificationUrl} with a validation token of {validationToken}");
+            _log.LogTrace($"Returning a 200 OK Response to a request to {_config.NotificationUrl} with a validation token of {validationToken}");
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(validationToken, Encoding.UTF8, "plain/text"),
@@ -150,7 +151,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             string json = await request.Content.ReadAsStringAsync();
             var notifications = JsonConvert.DeserializeObject<NotificationPayload>(json);
 
-            _log.Verbose($"Received a notification payload of {json}");
+            _log.LogTrace($"Received a notification payload of {json}");
             // We have 30sec to reply to the payload.
             // So offload everything else (especially fetches back to the graph and executing the user function)
             Task.Run(() => HandleNotifications(notifications));

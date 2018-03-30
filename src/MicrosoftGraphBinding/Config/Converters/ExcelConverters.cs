@@ -15,7 +15,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
     {
         internal class ExcelConverter : 
             IAsyncConverter<ExcelAttribute, string[][]>,
-            IAsyncConverter<ExcelAttribute, WorkbookTable>
+            IAsyncConverter<ExcelAttribute, WorkbookTable>,
+            IAsyncConverter<ExcelAttribute, IAsyncCollector<string>>
         {
             private readonly ServiceManager _serviceManager;
 
@@ -24,11 +25,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
                 _serviceManager = serviceManager;
             }
 
-            public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
+            async Task<IAsyncCollector<string>> IAsyncConverter<ExcelAttribute, IAsyncCollector<string>>.ConvertAsync(ExcelAttribute attr, CancellationToken token)
             {
-                var service = Task.Run(() => _serviceManager.GetExcelService(attr)).GetAwaiter().GetResult();
-                return new ExcelAsyncCollector(service, attr);
+                var manager = await _serviceManager.GetExcelService(attr);
+                return new ExcelAsyncCollector(manager, attr);
             }
+
             async Task<string[][]> IAsyncConverter<ExcelAttribute, string[][]>.ConvertAsync(ExcelAttribute attr, CancellationToken cancellationToken)
             {
                 var service = await _serviceManager.GetExcelService(attr);
@@ -42,26 +44,38 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
             }
         }
 
-        /// <summary>
-        /// Used to convert POCOs to JObjects (for Excel output bindings)
-        /// T -> used to append a row
-        /// T[] -> used to update a table
-        /// </summary>
-        /// <typeparam name="T">Generic POCO type</typeparam>
-        internal class GenericExcelRowConverter<T> : IConverter<List<T>, JObject>, IConverter<T, JObject>
+        internal class ExcelGenericsConverter<T> : IAsyncConverter<ExcelAttribute, T[]>, 
+            IConverter<T, string>
         {
+            private readonly ServiceManager _serviceManager;
+
             /// <summary>
-            /// Convert from POCO -> JObject (either row or rows)
+            /// Initializes a new instance of the <see cref="ExcelGenericsConverter{T}"/> class.
+            /// </summary>
+            /// <param name="parent">O365Extension to which the result of the request for data will be returned</param>
+            public ExcelGenericsConverter(ServiceManager serviceManager)
+            {
+                this._serviceManager = serviceManager;
+            }
+
+            async Task<T[]> IAsyncConverter<ExcelAttribute, T[]>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
+            {
+                var manager = await _serviceManager.GetExcelService(input);
+                return await manager.GetExcelRangePOCOAsync<T>(input);
+            }
+
+            /// <summary>
+            /// Convert from POCO -> string (either row or rows)
             /// </summary>
             /// <param name="input">POCO input from fx</param>
-            /// <returns>JObject with proper keys set</returns>
-            public JObject Convert(T input)
+            /// <returns>String representation of JSON</returns>
+            public string Convert(T input)
             {
                 // handle T[]
                 if (typeof(T).IsArray)
                 {
                     var array = input as object[];
-                    return ConvertEnumerable(array);
+                    return ConvertEnumerable(array).ToString();
                 }
                 else
                 {
@@ -69,7 +83,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
                     JObject data = JObject.FromObject(input);
                     data[O365Constants.POCOKey] = true; // Set Microsoft.O365Bindings.POCO flag to indicate that data is from POCO (vs. object[][])
 
-                    return data;
+                    return data.ToString();
                 }
             }
 
@@ -102,43 +116,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
                 jsonContent[O365Constants.POCOKey] = true;
 
                 return jsonContent;
-            }
-        }
-
-        /// <summary>
-        /// Used for INPUT bindings: convert Excel Attribute -> POCO inputs
-        /// </summary>
-        /// <typeparam name="T">POCO type user wishes to bind Excel contents to</typeparam>
-        internal class POCOExcelRowConverter<T> : IAsyncConverter<ExcelAttribute, T[]>, IAsyncConverter<ExcelAttribute, List<T>>
-            where T : new()
-        {
-            private readonly ServiceManager _serviceManager;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="POCOExcelRowConverter{T}"/> class.
-            /// </summary>
-            /// <param name="parent">O365Extension to which the result of the request for data will be returned</param>
-            public POCOExcelRowConverter(ServiceManager serviceManager)
-            {
-                this._serviceManager = serviceManager;
-            }
-
-            async Task<List<T>> IAsyncConverter<ExcelAttribute, List<T>>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
-            {
-                var manager = await _serviceManager.GetExcelService(input);
-                return await manager.GetExcelRangePOCOListAsync<T>(input);
-            }
-
-            async Task<T[]> IAsyncConverter<ExcelAttribute, T[]>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
-            {
-                var manager = await _serviceManager.GetExcelService(input);
-                return await manager.GetExcelRangePOCOAsync<T>(input);
-            }
-
-            public IAsyncCollector<JObject> CreateCollector(ExcelAttribute attr)
-            {
-                var manager = Task.Run(() => _serviceManager.GetExcelService(attr)).GetAwaiter().GetResult();
-                return new ExcelAsyncCollector(manager, attr);
             }
         }
     }
