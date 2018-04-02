@@ -44,6 +44,12 @@ App Settings to Modify in `local.settings.json`:
 - `WEBSITE_AUTH_CLIENT_SECRET` - Copy from your App Settings in Kudu from your configured app
 - `BYOB_TokenMap` - A valid local directory that you have read/write access to
 
+## Current Version
+Latest Version: 1.0.0-beta3
+Portal Version: 1.0.0-beta1
+
+If you want to get the latest features and bugfixes, you can manually update to the latest version by following the instructions in the `update` folder. NOTE: If you update to a different version than the version in the portal, you cannot use the Token and Microsoft Graph templates.
+
 ## License
 
 This project is under the benevolent umbrella of the [.NET Foundation](http://www.dotnetfoundation.org/) and is licensed under [the MIT License](https://github.com/Azure/azure-webjobs-sdk/blob/master/LICENSE.txt)
