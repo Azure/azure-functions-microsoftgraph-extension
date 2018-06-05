@@ -8,6 +8,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     /// </summary>
     internal static class Constants
     {
+        #region Always Present AppSettings
+        /// <summary>
+        /// Application setting key for the website hostname
+        /// </summary>
+        public const string AppSettingWebsiteHostname = "WEBSITE_HOSTNAME";
+        #endregion
+
+        #region AAD Client AppSettings
         /// <summary>
         /// Application setting key for the client ID
         /// </summary>
@@ -19,29 +27,23 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         public const string AppSettingClientSecretName = "WEBSITE_AUTH_CLIENT_SECRET";
 
         /// <summary>
-        /// Application setting key for the website hostname
+        /// Base tenant URL for AAD
         /// </summary>
-        public const string AppSettingWebsiteHostname = "WEBSITE_HOSTNAME";
+        public const string AppSettingWebsiteAuthOpenIdIssuer = "WEBSITE_AUTH_OPENID_ISSUER";
+        #endregion
 
+        #region EasyAuth Required AppSettings
         /// <summary>
         /// Application setting key for the website auth signing key
         /// </summary>
         public const string AppSettingWebsiteAuthSigningKey = "WEBSITE_AUTH_SIGNING_KEY";
+        #endregion
 
+        #region Default Values
         /// <summary>
-        /// Base tenant URL for AAD
+        /// The default AAD tenant url token.
         /// </summary>
-        public const string AppSettingWebsiteAuthOpenIdIssuer = "WEBSITE_AUTH_OPENID_ISSUER";
-
-        /// <summary>
-        /// The default base url to grab the token from.
-        /// </summary>
-        public const string DefaultEnvironmentBaseUrl = "https://login.windows.net/";
-
-        /// <summary>
-        /// The default tenant to grab the token for
-        /// </summary>
-        public const string DefaultTenantId = "common";
-
+        public const string DefaultAadTenantUrl = "https://login.windows.net/common";
+        #endregion
     }
 }
