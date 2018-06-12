@@ -12,16 +12,47 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     /// </summary>
     internal class AadClient : IAadClient
     {
-        private readonly AuthenticationContext _authContext;
-        private readonly ClientCredential _clientCredentials;
+        private INameResolver _appSettings;
 
-        public AadClient(ClientCredential credentials, string tenantUrl)
+        // Since the AadClient is instantiated even if certain app settings aren't required, use lazy initialization
+        // for private properties depending on these app settings.
+
+        private AuthenticationContext AuthContext
         {
-            string aadTenantUrl = tenantUrl ?? (Constants.DefaultEnvironmentBaseUrl + Constants.DefaultTenantId);
-            // NOTE: We had to turn off authority validation here, otherwise we would
-            // get the error "AADSTS50049: Unknown or invalid instance" for some tenants.
-            _authContext = new AuthenticationContext(aadTenantUrl,false);
-            _clientCredentials = credentials;
+            get
+            {
+                if (_authContext == null)
+                {
+                    string tenantUrl = _appSettings.Resolve(Constants.AppSettingWebsiteAuthOpenIdIssuer) 
+                        ?? (Constants.DefaultAadTenantUrl);
+                    // NOTE: We had to turn off authority validation here, otherwise we would
+                    // get the error "AADSTS50049: Unknown or invalid instance" for some tenants.
+                    _authContext = new AuthenticationContext(tenantUrl, false);
+                }
+                return _authContext;
+            }
+        }
+
+        private ClientCredential ClientCredentials
+        {
+            get
+            {
+                if (_clientCredentials == null)
+                {
+                    string clientId = _appSettings.Resolve(Constants.AppSettingClientIdName);
+                    string clientSecret = _appSettings.Resolve(Constants.AppSettingClientSecretName);
+                    _clientCredentials = new ClientCredential(clientId, clientSecret);
+                }
+                return _clientCredentials;
+            }
+        }
+
+        private AuthenticationContext _authContext;
+        private ClientCredential _clientCredentials;
+
+        public AadClient(INameResolver appSettings)
+        {
+            _appSettings = appSettings;
         }
 
         /// <summary>
@@ -46,7 +77,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
 
             UserAssertion userAssertion = new UserAssertion(userToken);
-            AuthenticationResult ar = await _authContext.AcquireTokenAsync(resource, _clientCredentials, userAssertion);
+            AuthenticationResult ar = await AuthContext.AcquireTokenAsync(resource, ClientCredentials, userAssertion);
             return ar.AccessToken;
         }
 
@@ -57,7 +88,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                 throw new ArgumentException("A resource is required to retrieve a token from client credentials.");
             }
 
-            AuthenticationResult authResult = await _authContext.AcquireTokenAsync(resource, _clientCredentials);
+            AuthenticationResult authResult = await AuthContext.AcquireTokenAsync(resource, ClientCredentials);
             return authResult.AccessToken;
         }
     }

@@ -39,10 +39,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             var config = new AuthTokenExtensionConfig();
             var mockClient = GetEasyAuthClientMock(currentToken);
             config.EasyAuthClient = mockClient.Object;
-            config.AppSettings = GetNameResolver(new Dictionary<string, string>()
+            config.AppSettings = GetAppSettings(new Dictionary<string, string>()
             {
                 { Constants.AppSettingWebsiteAuthSigningKey, SigningKey }
-            }).Object;
+            });
 
             var args = new Dictionary<string, object>
             {
@@ -65,10 +65,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             var config = new AuthTokenExtensionConfig();
             var mockClient = GetEasyAuthClientMock(expiredToken, refreshedToken);
             config.EasyAuthClient = mockClient.Object;
-            config.AppSettings = GetNameResolver(new Dictionary<string, string>()
+            config.AppSettings = GetAppSettings(new Dictionary<string, string>()
             {
                 { Constants.AppSettingWebsiteAuthSigningKey, SigningKey }
-            }).Object;
+            });
 
             var args = new Dictionary<string, object>
             {
@@ -79,7 +79,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
             var expectedResult = refreshedToken.AccessToken;
             Assert.Equal(expectedResult, finalTokenValue);
-            mockClient.Verify(client => client.RefreshToken(It.IsAny<JwtSecurityToken>(), It.IsAny<TokenAttribute>()), Times.AtLeastOnce());
+            mockClient.Verify(client => client.RefreshTokenAsync(It.IsAny<JwtSecurityToken>(), It.IsAny<TokenAttribute>()), Times.AtLeastOnce());
             ResetState();
         }
 
@@ -89,6 +89,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             var config = new AuthTokenExtensionConfig();
             var mockClient = GetAadClientMock();
             config.AadClient = mockClient.Object;
+            config.AppSettings = GetAppSettings();
 
             var args = new Dictionary<string, object>
             {
@@ -109,6 +110,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             var config = new AuthTokenExtensionConfig();
             var mockClient = GetAadClientMock();
             config.AadClient = mockClient.Object;
+            config.AppSettings = GetAppSettings();
 
             var args = new Dictionary<string, object>
             {
@@ -139,7 +141,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 Audience = "https://sample.com",
                 Issuer = "https://sample.com",
                 Subject = identity,
-                SigningCredentials = new EasyAuthTokenManager.HmacSigningCredentials(SigningKey),
+                SigningCredentials = new HmacSigningCredentials(SigningKey),
             };
             string accessToken = jwtHandler.CreateJwtSecurityToken(descr).RawEncryptedKey;
             return new EasyAuthTokenStoreEntry()
@@ -153,7 +155,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         {
             var clientMock = new Mock<IEasyAuthClient>();
             var responseQueue = new Queue<EasyAuthTokenStoreEntry>(responsesInOrder);
-            clientMock.Setup(client => client.GetTokenStoreEntry(It.IsAny<JwtSecurityToken>(), It.IsAny<TokenAttribute>()))
+            clientMock.Setup(client => client.GetTokenStoreEntryAsync(It.IsAny<JwtSecurityToken>(), It.IsAny<TokenAttribute>()))
                 .Returns(Task.FromResult(responseQueue.Dequeue()));
             return clientMock;
         }
@@ -168,14 +170,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             return clientMock;
         }
 
-        private static Mock<INameResolver> GetNameResolver(Dictionary<string, string> appSettings)
+        private static INameResolver GetAppSettings(Dictionary<string, string> optionalAppSettings = null)
         {
             var mock = new Mock<INameResolver>();
-            foreach(var appSetting in appSettings)
+            optionalAppSettings = optionalAppSettings ?? new Dictionary<string, string>();
+            foreach(var appSetting in optionalAppSettings)
             {
                 mock.Setup(resolver => resolver.Resolve(appSetting.Key)).Returns(appSetting.Value);
             }
-            return mock;
+
+            //Establish required app settings
+            mock.Setup(resolver => resolver.Resolve(Constants.AppSettingWebsiteHostname)).Returns("contoso.azurewebsites.net");
+
+            return mock.Object;
         }
 
         private class TokenFunctions
