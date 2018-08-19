@@ -42,6 +42,7 @@ If you are making code changes to the extensions themselves and wish to test the
 App Settings to Modify in `local.settings.json`:
 - `WEBSITE_AUTH_CLIENT_ID` - Copy from your App Settings in Kudu from your configured app
 - `WEBSITE_AUTH_CLIENT_SECRET` - Copy from your App Settings in Kudu from your configured app
+- `WEBSITE_AUTH_OPENID_ISSUER` - (Optional, Required for a `ClientCredentials` `TokenIdentityMode`) Copy from your App Settings in Kudu from your configured app (or set to `https://sts.windows.net/<tenantID>` for Azure Active Directory)
 - `BYOB_TokenMap` - A valid local directory that you have read/write access to
 
 ## Current Version
