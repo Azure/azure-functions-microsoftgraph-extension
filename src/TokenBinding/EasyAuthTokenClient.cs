@@ -8,8 +8,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     using System.Net;
     using System.Net.Http;
     using System.Threading.Tasks;
-    using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Options;
     using Newtonsoft.Json;
 
     /// <summary>
@@ -18,33 +18,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     internal class EasyAuthTokenClient : IEasyAuthClient
     {
         private static readonly HttpClient _httpClient = new HttpClient();
-
-        private readonly string _baseUrl;
-
         private readonly ILogger _log;
-
-        private JwtSecurityToken _tokenForEasyAuthAccess;
+        private readonly TokenOptions _options;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EasyAuthTokenClient"/> class.
         /// </summary>
         /// <param name="hostName">The hostname of the webapp </param>
         /// <param name="signingKey">The website authorization signing key</param>
-        public EasyAuthTokenClient(string hostName, ILoggerFactory loggerFactory)
+        public EasyAuthTokenClient(IOptions<TokenOptions> options, ILoggerFactory loggerFactory)
         {
-            _baseUrl = "https://" + hostName + "/";
-            _log = loggerFactory.CreateLogger(AuthTokenExtensionConfig.CreateBindingCategory("AuthToken"));
-        }
-
-        public string GetBaseUrl()
-        {
-            return _baseUrl;
+            _log = loggerFactory.CreateLogger(AuthTokenExtensionConfigProvider.CreateBindingCategory("AuthToken"));
+            _options = options.Value;
         }
 
         public async Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(JwtSecurityToken jwt, TokenAttribute attribute)
         {
             // Send the token to the local /.auth/me endpoint and return the JSON
-            string meUrl = _baseUrl + $".auth/me?provider={attribute.IdentityProvider}";
+            string meUrl = $"https://{_options.HostName}/.auth/me?provider={attribute.IdentityProvider}";
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, meUrl))
             {
@@ -56,7 +47,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                     if (!response.IsSuccessStatusCode)
                     {
                         string errorResponse = await response.Content.ReadAsStringAsync();
-                        throw new InvalidOperationException($"Request to {_baseUrl} failed. Status Code: {response.StatusCode}; Body: {errorResponse}");
+                        throw new InvalidOperationException($"Request to {meUrl} failed. Status Code: {response.StatusCode}; Body: {errorResponse}");
                     }
                     var responseString = await response.Content.ReadAsStringAsync();
                     return JsonConvert.DeserializeObject<EasyAuthTokenStoreEntry>(responseString);
@@ -81,7 +72,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                 throw new ArgumentException("A provider is necessary to renew an access token.");
             }
 
-            string refreshUrl = _baseUrl + $".auth/refresh?resource=" + WebUtility.UrlEncode(attribute.Resource);
+            string refreshUrl = $"https://{_options.HostName}/.auth/refresh?resource=" + WebUtility.UrlEncode(attribute.Resource);
 
             using (var refreshRequest = new HttpRequestMessage(HttpMethod.Get, refreshUrl))
             {

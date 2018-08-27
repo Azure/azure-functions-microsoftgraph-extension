@@ -13,7 +13,5 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(JwtSecurityToken jwt, TokenAttribute attribute);
 
         Task RefreshToken(JwtSecurityToken jwt, TokenAttribute attribute);
-
-        string GetBaseUrl();
     }
 }

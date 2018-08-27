@@ -2,18 +2,20 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
 using Microsoft.Graph;
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 {
     internal class OneDriveService
     {
-        private IGraphServiceClient _client;
+        private GraphServiceClientManager _clientProvider;
 
-        public OneDriveService(IGraphServiceClient client)
+        public OneDriveService(GraphServiceClientManager clientProvider)
         {
-            _client = client;
+            _clientProvider = clientProvider;
         }
 
         /// <summary>
@@ -23,9 +25,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="graphClient"></param>
         /// <param name="attr"></param>
         /// <returns></returns>
-        public async Task<byte[]> GetOneDriveContentsAsByteArrayAsync(OneDriveAttribute attr)
+        public async Task<byte[]> GetOneDriveContentsAsByteArrayAsync(OneDriveAttribute attr, CancellationToken token)
         {
-            var response = await GetOneDriveContentsAsStreamAsync(attr);
+            var response = await GetOneDriveContentsAsStreamAsync(attr, token);
 
             using (MemoryStream ms = new MemoryStream())
             {
@@ -34,17 +36,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             }
         }
 
-        public Stream ConvertStream(Stream stream, OneDriveAttribute attribute)
+        public Stream ConvertStream(Stream stream, OneDriveAttribute attribute, IGraphServiceClient client)
         {
             if (attribute.Access != FileAccess.Write)
             {
                 return stream;
             }
-            return new OneDriveWriteStream(_client, attribute.Path);
+            return new OneDriveWriteStream(client, attribute.Path);
         }
 
-        public async Task<Stream> GetOneDriveContentsAsStreamAsync(OneDriveAttribute attr)
+        public async Task<Stream> GetOneDriveContentsAsStreamAsync(OneDriveAttribute attr, CancellationToken token)
         {
+            IGraphServiceClient client = await _clientProvider.GetMSGraphClientFromTokenAttributeAsync(attr, token);
             Stream response;
             // How to download from OneDrive: https://developer.microsoft.com/en-us/graph/docs/api-reference/v1.0/api/item_downloadcontent
             // GET https://graph.microsoft.com/v1.0/me/drive/root:/test1/hi.txt:/content HTTP/1.1
@@ -55,14 +58,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
                 // Download via a Share URL
                 var shareToken = UrlToSharingToken(attr.Path);
-                response = await _client.GetOneDriveContentStreamFromShareAsync(shareToken);
+                response = await client.GetOneDriveContentStreamFromShareAsync(shareToken, token);
             }
             else
             {
                 try
                 {
                     // Retrieve stream of OneDrive item
-                    response = await _client.GetOneDriveContentStreamAsync(attr.Path);
+                    response = await client.GetOneDriveContentStreamAsync(attr.Path, token);
                 } catch
                 {
                     //File does not exist, so create new memory stream
@@ -72,17 +75,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
             }
 
-            return ConvertStream(response, attr);
+            return ConvertStream(response, attr, client);
         }
 
-        public async Task<DriveItem> GetOneDriveItemAsync(OneDriveAttribute attr)
+        public async Task<DriveItem> GetOneDriveItemAsync(OneDriveAttribute attr, CancellationToken token)
         {
-            return await _client.GetOneDriveItemAsync(attr.Path);
+            IGraphServiceClient client = await _clientProvider.GetMSGraphClientFromTokenAttributeAsync(attr, token);
+            return await client.GetOneDriveItemAsync(attr.Path, token);
         }
 
-        public async Task<DriveItem> UploadOneDriveContentsAsync(OneDriveAttribute attr, Stream fileStream)
+        public async Task<DriveItem> UploadOneDriveContentsAsync(OneDriveAttribute attr, Stream fileStream, CancellationToken token)
         {
-            return await _client.UploadOneDriveItemAsync(attr.Path, fileStream);
+            IGraphServiceClient client = await _clientProvider.GetMSGraphClientFromTokenAttributeAsync(attr, token);
+            return await client.UploadOneDriveItemAsync(attr.Path, fileStream, token);
         }
 
         // https://developer.microsoft.com/en-us/graph/docs/api-reference/v1.0/api/shares_get#transform-a-sharing-url

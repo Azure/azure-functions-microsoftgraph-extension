@@ -14,11 +14,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     internal class OutlookAsyncCollector : IAsyncCollector<Message>
     {
         private readonly OutlookService _client;
+        private readonly OutlookAttribute _attribute;
         private readonly Collection<Message> _messages;
 
-        public OutlookAsyncCollector(OutlookService client)
+        public OutlookAsyncCollector(OutlookService client, OutlookAttribute attribute)
         {
             _client = client;
+            _attribute = attribute;
             _messages = new Collection<Message>();
         }
 
@@ -37,7 +39,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         {
             foreach (var msg in _messages)
             {
-                await _client.SendMessageAsync(msg);
+                await _client.SendMessageAsync(_attribute, msg, cancellationToken);
             }
 
             _messages.Clear();

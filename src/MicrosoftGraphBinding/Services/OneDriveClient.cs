@@ -4,6 +4,7 @@
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 {
     using System.IO;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Graph;
     using Newtonsoft.Json;
@@ -19,7 +20,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="client">Authenticated Graph Service Client used to retrieve file</param>
         /// <param name="attr">Attribute with necessary data (e.g. path)</param>
         /// <returns>Stream of file content</returns>
-        public static async Task<Stream> GetOneDriveContentStreamAsync(this IGraphServiceClient client, string path)
+        public static async Task<Stream> GetOneDriveContentStreamAsync(this IGraphServiceClient client, string path, CancellationToken token)
         {
             // Retrieve stream of OneDrive item
             return await client
@@ -29,10 +30,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .ItemWithPath(path)
                 .Content
                 .Request()
-                .GetAsync();
+                .GetAsync(token);
         }
 
-        public static async Task<DriveItem> GetOneDriveItemAsync(this IGraphServiceClient client, string path)
+        public static async Task<DriveItem> GetOneDriveItemAsync(this IGraphServiceClient client, string path, CancellationToken token)
         {
             // Retrieve OneDrive item
             return await client
@@ -41,17 +42,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .Root
                 .ItemWithPath(path)
                 .Request()
-                .GetAsync();
+                .GetAsync(token);
         }
 
-        public static async Task<Stream> GetOneDriveContentStreamFromShareAsync(this IGraphServiceClient client, string shareToken)
+        public static async Task<Stream> GetOneDriveContentStreamFromShareAsync(this IGraphServiceClient client, string shareToken, CancellationToken token)
         {
             return await client
                 .Shares[shareToken]
                 .Root
                 .Content
                 .Request()
-                .GetAsync();
+                .GetAsync(token);
         }
 
         /// <summary>
@@ -61,7 +62,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="attr"></param>
         /// <param name="fileStream">Stream of input to be uploaded</param>
         /// <returns>Drive item representing newly added/updated item</returns>
-        public static async Task<DriveItem> UploadOneDriveItemAsync(this IGraphServiceClient client, string path, Stream fileStream)
+        public static async Task<DriveItem> UploadOneDriveItemAsync(this IGraphServiceClient client, string path, Stream fileStream, CancellationToken token)
         {
             fileStream.Position = 0;
             DriveItem result = await client
@@ -71,7 +72,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 .ItemWithPath(path)
                 .Content
                 .Request()
-                .PutAsync<DriveItem>(fileStream);
+                .PutAsync<DriveItem>(fileStream, token);
             return result;
         }
 

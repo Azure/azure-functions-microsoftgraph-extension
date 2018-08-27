@@ -3,6 +3,7 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 {
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Graph;
 
@@ -13,10 +14,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="client">GraphServiceClient used to send request</param>
         /// <returns>Async task for posted message</returns>
-        public static async Task SendMessageAsync(this IGraphServiceClient client, Message msg)
+        public static async Task SendMessageAsync(this IGraphServiceClient client, Message msg, CancellationToken token)
         {
             // Send message & save to sent items folder
-            await client.Me.SendMail(msg, true).Request().PostAsync();
+            await client.Me.SendMail(msg, true).Request().PostAsync(token);
         }
     }
 }

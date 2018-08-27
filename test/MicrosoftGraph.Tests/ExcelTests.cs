@@ -31,7 +31,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockGetTableWorkbookAsync(table);
 
-            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetWorkbookTable");
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>("ExcelInputFunctions.GetWorkbookTable", clientMock);
 
             var expectedResult = table;
             Assert.Equal(expectedResult, finalTable);
@@ -49,7 +49,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             };
             clientMock.MockGetTableWorkbookRangeAsync(workbookRange);
 
-            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetExcelTableRange");
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>("ExcelInputFunctions.GetExcelTableRange", clientMock);
 
             var expectedResult = range;
             Assert.Equal(expectedResult, finalRange);
@@ -62,7 +62,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var range = GetRangeAsJaggedStringArray();
             var clientMock = GetWorksheetClientMock(range);
 
-            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetExcelWorksheetRange");
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>("ExcelInputFunctions.GetExcelWorksheetRange", clientMock);
 
             var expectedResult = range;
             Assert.Equal(expectedResult, finalRange);
@@ -75,7 +75,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var range = GetRangeAsJaggedStringArray();
             var clientMock = GetWorksheetClientMock(range);
 
-            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>(clientMock, "ExcelInputFunctions.GetExcelWorksheetRangePocoArray");
+            await CommonUtilities.ExecuteFunction<ExcelInputFunctions>("ExcelInputFunctions.GetExcelWorksheetRangePocoArray", clientMock);
 
             var expectedResult = JsonConvert.SerializeObject(GetRangeAsPocoArray());
             Assert.Equal(expectedResult, JsonConvert.SerializeObject(finalRangePocoArray));
@@ -87,7 +87,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = AppendClientMock();
 
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowJaggedArray");
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>("ExcelOutputFunctions.AppendRowJaggedArray", clientMock);
 
             string[][] allRows = GetAllButHeaderRow();
             clientMock.VerifyPostTableRowAsync(path, tableName, token => ValuesEqual(allRows, token));
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = AppendClientMock();
 
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPoco");
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>("ExcelOutputFunctions.AppendRowPoco", clientMock);
             string[][] allRows = GetAllButHeaderRow();
             clientMock.VerifyPostTableRowAsync(path, tableName, token => ValuesEqual(allRows[0], token));
             ResetState();
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = AppendClientMock();
 
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowPocoArray");
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>("ExcelOutputFunctions.AppendRowPocoArray", clientMock);
 
             string[][] allRows = GetAllButHeaderRow();
             foreach (var row in allRows)
@@ -125,7 +125,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = AppendClientMock();
 
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.AppendRowNode");
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>("ExcelOutputFunctions.AppendRowNode", clientMock);
 
             string[][] allRows = GetAllButHeaderRow();
             clientMock.VerifyPostTableRowAsync(path, tableName, token => ValuesEqual(allRows, token));
@@ -137,7 +137,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = UpdateClientMock();
 
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheetJaggedArray");
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>("ExcelOutputFunctions.UpdateWorksheetJaggedArray", clientMock);
             string[][] allRows = GetAllButHeaderRow();
             clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsJaggedArray(range.Values, allRows));
 
@@ -149,7 +149,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = UpdateClientMock();
 
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheet");
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>("ExcelOutputFunctions.UpdateWorksheet", clientMock);
             string[][] allRows = GetAllButHeaderRow();
             clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsJaggedArray(range.Values, allRows));
             ResetState();
@@ -160,7 +160,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = UpdateClientMock();
 
-            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>(clientMock, "ExcelOutputFunctions.UpdateWorksheetNode");
+            await CommonUtilities.ExecuteFunction<ExcelOutputFunctions>("ExcelOutputFunctions.UpdateWorksheetNode", clientMock);
             string[][] allRows = GetAllButHeaderRow();
             clientMock.VerifyPatchWorksheetAsync(path, worksheetName, newTableAddressMinusHeader, range => JTokenEqualsJaggedArray(range.Values, allRows));
             ResetState();

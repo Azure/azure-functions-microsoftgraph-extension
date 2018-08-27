@@ -24,8 +24,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
         private const string SampleUserToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ";
 
-        private static readonly JwtSecurityTokenHandler jwtHandler = new JwtSecurityTokenHandler();
-
         private static string AccessTokenFromClientCredentials = "clientcredentials";
 
         private static string AccessTokenFromUserToken = "usertoken";
@@ -35,24 +33,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task FromId_TokenStillValid_GetStoredToken()
         {
+            
             var currentToken = BuildTokenEntry(DateTime.UtcNow.AddDays(1));
-            var config = new AuthTokenExtensionConfig();
-            var mockClient = GetEasyAuthClientMock(currentToken);
-            config.EasyAuthClient = mockClient.Object;
-            config.AppSettings = GetNameResolver(new Dictionary<string, string>()
+            IEasyAuthClient mockEasyAuthClient = GetEasyAuthClientMock(currentToken).Object;
+            IAadClient aadClient = GetAadClientMock().Object;
+            INameResolver appSettings = GetNameResolver(new Dictionary<string, string>()
             {
-                { Constants.AppSettingWebsiteAuthSigningKey, SigningKey }
+                { Constants.WebsiteAuthSigningKey, SigningKey }
             }).Object;
 
-            var args = new Dictionary<string, object>
-            {
-                {"token", "dummyValue" },
-            };
-            JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
-            await host.CallAsync("TokenFunctions.FromId", args);
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<TokenFunctions>("TokenFunctions.FromId",  appSettings: appSettings, easyAuthClient: mockEasyAuthClient, aadClient: aadClient);
 
             var expectedResult = currentToken.AccessToken;
-            Assert.Equal(expectedResult, finalTokenValue);
+            Assert.Equal(expectedResult, outputContainer.Output);
             ResetState();
         }
 
@@ -62,23 +55,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             var expiredToken = BuildTokenEntry(DateTime.UtcNow.AddSeconds(-60));
             var refreshedToken = BuildTokenEntry(DateTime.UtcNow.AddDays(1));
 
-            var config = new AuthTokenExtensionConfig();
             var mockClient = GetEasyAuthClientMock(expiredToken, refreshedToken);
-            config.EasyAuthClient = mockClient.Object;
-            config.AppSettings = GetNameResolver(new Dictionary<string, string>()
+            INameResolver appSettings = GetNameResolver(new Dictionary<string, string>()
             {
-                { Constants.AppSettingWebsiteAuthSigningKey, SigningKey }
+                { Constants.WebsiteAuthSigningKey, SigningKey }
             }).Object;
 
-            var args = new Dictionary<string, object>
-            {
-                {"token", "dummyValue" },
-            };
-            JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
-            await host.CallAsync("TokenFunctions.FromId", args);
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<TokenFunctions>("TokenFunctions.FromId", appSettings: appSettings, easyAuthClient: mockClient.Object);
 
             var expectedResult = refreshedToken.AccessToken;
-            Assert.Equal(expectedResult, finalTokenValue);
+            Assert.Equal(expectedResult, outputContainer.Output);
             mockClient.Verify(client => client.RefreshToken(It.IsAny<JwtSecurityToken>(), It.IsAny<TokenAttribute>()), Times.AtLeastOnce());
             ResetState();
         }
@@ -86,19 +72,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task FromUserToken_CredentialsValid_GetToken()
         {
-            var config = new AuthTokenExtensionConfig();
             var mockClient = GetAadClientMock();
-            config.AadClient = mockClient.Object;
 
-            var args = new Dictionary<string, object>
-            {
-                {"token", SampleUserToken },
-            };
-            JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
-            await host.CallAsync("TokenFunctions.FromUserToken", args);
+            var methodInfo = typeof(TokenFunctions).GetMethod("FromUserToken");
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<TokenFunctions>("TokenFunctions.FromUserToken", aadClient: mockClient.Object);
 
             var expectedResult = AccessTokenFromUserToken;
-            Assert.Equal(expectedResult, finalTokenValue);
+            Assert.Equal(expectedResult, outputContainer.Output);
             mockClient.Verify(client => client.GetTokenOnBehalfOfUserAsync(SampleUserToken, GraphResource), Times.Exactly(1));
             ResetState();
         }
@@ -106,19 +86,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task FromClientCredentials_CredentialsValid_GetToken()
         {
-            var config = new AuthTokenExtensionConfig();
             var mockClient = GetAadClientMock();
-            config.AadClient = mockClient.Object;
 
             var args = new Dictionary<string, object>
             {
                 { "token", SampleUserToken },
             };
-            JobHost host = TestHelpers.NewHost<TokenFunctions>(config);
-            await host.CallAsync("TokenFunctions.ClientCredentials", args);
+
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<TokenFunctions>("TokenFunctions.ClientCredentials", aadClient: mockClient.Object);
 
             var expectedResult = AccessTokenFromClientCredentials;
-            Assert.Equal(expectedResult, finalTokenValue);
+            Assert.Equal(expectedResult, outputContainer.Output);
             mockClient.Verify(client => client.GetTokenFromClientCredentials(GraphResource), Times.Exactly(1));
             ResetState();
         }
@@ -141,7 +119,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 Subject = identity,
                 SigningCredentials = new EasyAuthTokenManager.HmacSigningCredentials(SigningKey),
             };
-            string accessToken = jwtHandler.CreateJwtSecurityToken(descr).RawEncryptedKey;
+            string accessToken = (new JwtSecurityTokenHandler()).CreateJwtSecurityToken(descr).RawData;
             return new EasyAuthTokenStoreEntry()
             {
                 AccessToken = accessToken,
@@ -178,16 +156,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             return mock;
         }
 
-        private class TokenFunctions
+        public class TokenFunctions
         {
             public void FromId(
                 [Token(
                 UserId = "UserId",
                 IdentityProvider = "AAD",
                 Identity = TokenIdentityMode.UserFromId,
-                Resource = GraphResource)] string token)
+                Resource = GraphResource)] string token, OutputContainer outputContainer)
             {
-                finalTokenValue = token;
+                outputContainer.Output = token;
             }
 
             public void FromUserToken(
@@ -195,9 +173,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 Identity = TokenIdentityMode.UserFromToken,
                 UserToken = SampleUserToken,
                 IdentityProvider = "AAD",
-                Resource = GraphResource)] string token)
+                Resource = GraphResource)] string token, OutputContainer outputContainer)
             {
-                finalTokenValue = token;
+                outputContainer.Output = token;
             }
 
             public void ClientCredentials(
@@ -205,11 +183,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 Identity = TokenIdentityMode.ClientCredentials,
                 UserToken = SampleUserToken,
                 IdentityProvider = "AAD",
-                Resource = GraphResource)] string token)
+                Resource = GraphResource)] string token, OutputContainer outputContainer)
             {
-                finalTokenValue = token;
+                outputContainer.Output = token;
             }
         }
-
     }
 }

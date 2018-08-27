@@ -18,9 +18,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// </summary>
     internal class GraphWebhookSubscriptionAsyncCollector : IAsyncCollector<string>
     {
-        private readonly ServiceManager _extension; // already has token
+        private readonly GraphServiceClientManager _clientManager; // already has token
         private readonly ILogger _log;
-        private readonly GraphWebhookConfig _webhookConfig;
+        private readonly IGraphSubscriptionStore _subscriptionStore;
+        private readonly Uri _notificationUrl;
+        private readonly GraphOptions _options;
+        
 
         // User attribute that we're bound against.
         // Has key properties (e.g. what resource we're listening to)
@@ -28,52 +31,54 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         private List<string> _values;
 
-        public GraphWebhookSubscriptionAsyncCollector(ServiceManager extension, ILoggerFactory logFactory, GraphWebhookConfig config, GraphWebhookSubscriptionAttribute attribute)
+        public GraphWebhookSubscriptionAsyncCollector(GraphServiceClientManager clientManager, GraphOptions options, ILoggerFactory logFactory, IGraphSubscriptionStore subscriptionStore, Uri notificationUrl, GraphWebhookSubscriptionAttribute attribute)
         {
-            _extension = extension;
-            _log = logFactory?.CreateLogger(MicrosoftGraphExtensionConfig.CreateBindingCategory("GraphWebhook"));
-            _webhookConfig = config;
+            _clientManager = clientManager;
+            _log = logFactory?.CreateLogger(MicrosoftGraphExtensionConfigProvider.CreateBindingCategory("GraphWebhook"));
+            _subscriptionStore = subscriptionStore;
+            _notificationUrl = notificationUrl;
             _attribute = attribute;
+            _options = options;
             _values = new List<string>();
 
             _attribute.Validate();
         }
 
-        public async Task AddAsync(string value, CancellationToken cancellationToken = default(CancellationToken))
+        public Task AddAsync(string value, CancellationToken cancellationToken)
         {
             _values.Add(value);
+            return Task.CompletedTask;
         }
 
-        public async Task FlushAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public async Task FlushAsync(CancellationToken cancellationToken)
         {
             switch (_attribute.Action)
             {
                 case GraphWebhookSubscriptionAction.Create:
-                    await CreateSubscriptionsFromClientStates();
+                    await CreateSubscriptionsFromClientStatesAsync(cancellationToken);
                     break;
                 case GraphWebhookSubscriptionAction.Delete:
-                    await DeleteSubscriptionsFromSubscriptionIds();
+                    await DeleteSubscriptionsFromSubscriptionIds(cancellationToken);
                     break;
                 case GraphWebhookSubscriptionAction.Refresh:
-                    await RefreshSubscriptionsFromSubscriptionIds();
+                    await RefreshSubscriptionsFromSubscriptionIds(cancellationToken);
                     break;
             }
 
             _values.Clear();
         }
 
-        private async Task CreateSubscriptionsFromClientStates()
+        private async Task CreateSubscriptionsFromClientStatesAsync(CancellationToken cancellationToken)
         {
-            var client = await _extension.GetMSGraphClientAsync(_attribute);
+            var client = await _clientManager.GetMSGraphClientFromTokenAttributeAsync(_attribute, cancellationToken);
             var userInfo = await client.Me.Request().Select("Id").GetAsync();
-            var cache = _webhookConfig.SubscriptionStore;
 
             var subscriptions = _values.Select(GetSubscription);
             foreach (var subscription in subscriptions)
             {
-                _log.LogTrace($"Sending a request to {_webhookConfig.NotificationUrl} expecting a 200 response for a subscription to {subscription.Resource}");
+                _log.LogTrace($"Sending a request to {_notificationUrl} expecting a 200 response for a subscription to {subscription.Resource}");
                 var newSubscription = await client.Subscriptions.Request().AddAsync(subscription);
-                await cache.SaveSubscriptionEntryAsync(newSubscription, userInfo.Id);
+                await _subscriptionStore.SaveSubscriptionEntryAsync(newSubscription, userInfo.Id);
             }
         }
 
@@ -84,24 +89,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             {
                 Resource = _attribute.SubscriptionResource,
                 ChangeType = ChangeTypeExtension.ConvertArrayToString(_attribute.ChangeTypes),
-                NotificationUrl = _webhookConfig.NotificationUrl.ToString(),
-                ExpirationDateTime = DateTime.UtcNow + O365Constants.WebhookExpirationTimeSpan,
+                NotificationUrl = _notificationUrl.ToString(),
+                ExpirationDateTime = DateTime.UtcNow + _options.WebhookExpirationTimeSpan,
                 ClientState = clientState,
             };
         }
 
-        private async Task DeleteSubscriptionsFromSubscriptionIds()
+        private async Task DeleteSubscriptionsFromSubscriptionIds(CancellationToken token)
         {
-            var client = await _extension.GetMSGraphClientAsync(_attribute);
+            var client = await _clientManager.GetMSGraphClientFromTokenAttributeAsync(_attribute, token);
             var subscriptionIds = _values;
 
             foreach (string id in subscriptionIds)
             {
-                Task.Run(() => DeleteSubscription(client, id));
+                await DeleteSubscription(client, id);
             }
         }
 
-        private async void DeleteSubscription(IGraphServiceClient client, string id)
+        private async Task DeleteSubscription(IGraphServiceClient client, string id)
         {
             try
             {
@@ -115,28 +120,28 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             finally
             {
                 // Regardless of whether or not deleting the Graph subscription succeeded, delete the file
-                await _webhookConfig.SubscriptionStore.DeleteAsync(id);
+                await _subscriptionStore.DeleteAsync(id);
             }
         }
 
-        private async Task RefreshSubscriptionsFromSubscriptionIds()
+        private async Task RefreshSubscriptionsFromSubscriptionIds(CancellationToken token)
         {
-            var client = await _extension.GetMSGraphClientAsync(_attribute);
+            var client = await _clientManager.GetMSGraphClientFromTokenAttributeAsync(_attribute, token);
             var subscriptionIds = _values;
 
             foreach (var id in subscriptionIds)
             {
-                Task.Run(() => RefreshSubscription(client, id));
+                await RefreshSubscription(client, id);
             }
         }
 
-        private async void RefreshSubscription(IGraphServiceClient client, string id)
+        private async Task RefreshSubscription(IGraphServiceClient client, string id)
         {
             try
             {
                 var subscription = new Subscription
                 {
-                    ExpirationDateTime = DateTime.UtcNow + O365Constants.WebhookExpirationTimeSpan,
+                    ExpirationDateTime = DateTime.UtcNow + _options.WebhookExpirationTimeSpan,
                 };
 
                 var result = await client.Subscriptions[id].Request().UpdateAsync(subscription);
@@ -146,12 +151,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             catch (Exception ex)
             {
                 // If the subscription is expired, it can no longer be renewed, so delete the file
-                var subscriptionEntry = await _webhookConfig.SubscriptionStore.GetSubscriptionEntryAsync(id);
+                var subscriptionEntry = await _subscriptionStore.GetSubscriptionEntryAsync(id);
                 if (subscriptionEntry != null)
                 {
                     if(subscriptionEntry.Subscription.ExpirationDateTime < DateTime.UtcNow)
                     {
-                        _webhookConfig.SubscriptionStore.DeleteAsync(id);
+                        await _subscriptionStore.DeleteAsync(id);
                     } else
                     {
                         _log.LogError(ex, "A non-expired subscription failed to renew");

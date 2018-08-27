@@ -5,10 +5,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using System;
     using System.IdentityModel.Tokens.Jwt;
-    using System.Linq;
     using System.Security.Claims;
     using System.Threading.Tasks;
-    using Microsoft.Azure.WebJobs.Host;
+    using Microsoft.Extensions.Options;
     using Microsoft.IdentityModel.Tokens;
 
     /// <summary>
@@ -17,17 +16,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     /// </summary>
     internal class EasyAuthTokenManager
     {
-        internal static readonly JwtSecurityTokenHandler JwtHandler = new JwtSecurityTokenHandler();
+        internal readonly JwtSecurityTokenHandler JwtHandler = new JwtSecurityTokenHandler();
+        private const int GraphTokenBufferInMinutes = 5;
+        private const int JwtTokenDurationInMinutes = 15;
 
-  
-        private static readonly int GraphTokenBufferInMinutes = 5;
-
-        private static readonly int _jwtExpirationBufferInMinutes = 2;
-
-        private static readonly int _jwtTokenDurationInMinutes = 15;
-
-        private readonly string _signingKey;
-
+        private readonly TokenOptions _options;
         private readonly IEasyAuthClient _client;
 
         /// <summary>
@@ -35,10 +28,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// </summary>
         /// <param name="hostName">The hostname of the keystore. </param>
         /// <param name="signingKey">The website authorization signing key</param>
-        public EasyAuthTokenManager(IEasyAuthClient client, string signingKey)
+        public EasyAuthTokenManager(IEasyAuthClient client, IOptions<TokenOptions> options)
         {
             _client = client;
-            _signingKey = signingKey;
+            _options = options.Value;
         }
 
         /// <summary>
@@ -66,7 +59,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             return tokenStoreEntry.AccessToken;
         }
 
-        private static bool IsTokenValid(string token)
+        private bool IsTokenValid(string token)
         {
             return JwtHandler.CanReadToken(token);
         }
@@ -90,17 +83,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
 
             var identityClaims = new ClaimsIdentity(attribute.UserId);
-            identityClaims.AddClaim(new System.Security.Claims.Claim(ClaimTypes.NameIdentifier, attribute.UserId));
-            identityClaims.AddClaim(new System.Security.Claims.Claim("idp", attribute.IdentityProvider));
+            identityClaims.AddClaim(new Claim(ClaimTypes.NameIdentifier, attribute.UserId));
+            identityClaims.AddClaim(new Claim("idp", attribute.IdentityProvider));
 
-            var baseUrl = _client.GetBaseUrl();
+            var baseUrl = $"https://{_options.HostName}/";
             var descr = new SecurityTokenDescriptor
             {
                 Audience = baseUrl,
                 Issuer = baseUrl,
                 Subject = identityClaims,
-                Expires = DateTime.UtcNow.AddMinutes(_jwtTokenDurationInMinutes),
-                SigningCredentials = new HmacSigningCredentials(_signingKey),
+                Expires = DateTime.UtcNow.AddMinutes(JwtTokenDurationInMinutes),
+                SigningCredentials = new HmacSigningCredentials(_options.SigningKey),
             };
 
             return (JwtSecurityToken)JwtHandler.CreateToken(descr);

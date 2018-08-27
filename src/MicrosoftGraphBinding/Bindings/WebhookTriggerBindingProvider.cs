@@ -78,7 +78,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             }
         }
 
-        public async Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
+        public Task<ITriggerBinding> TryCreateAsync(TriggerBindingProviderContext context)
         {
             ParameterInfo parameter = context.Parameter;
 
@@ -91,7 +91,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 binding = new MyTriggerBinding(this, attribute, parameter);
             }
 
-            return binding;
+            return Task.FromResult(binding);
         }
 
         // Per parameter. 

@@ -10,42 +10,44 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
 
-    class OneDriveConverter :
+    internal class OneDriveConverter :
         IAsyncConverter<OneDriveAttribute, byte[]>,
         IAsyncConverter<OneDriveAttribute, string>,
         IAsyncConverter<OneDriveAttribute, Stream>,
-        IAsyncConverter<OneDriveAttribute, DriveItem>
+        IAsyncConverter<OneDriveAttribute, DriveItem>,
+        IAsyncConverter<OneDriveAttribute, IAsyncCollector<byte[]>>
     {
-        private readonly ServiceManager _serviceManager;
+        private readonly OneDriveService _service;
 
-        public OneDriveConverter(ServiceManager serviceManager)
+        public OneDriveConverter(OneDriveService service)
         {
-            _serviceManager = serviceManager;
+            _service = service;
         }
 
         async Task<byte[]> IAsyncConverter<OneDriveAttribute, byte[]>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
         {
-            var service = await _serviceManager.GetOneDriveService(input);
-            return await service.GetOneDriveContentsAsByteArrayAsync(input);
+            return await _service.GetOneDriveContentsAsByteArrayAsync(input, cancellationToken);
         }
 
         async Task<string> IAsyncConverter<OneDriveAttribute, string>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
         {
-            var service = await _serviceManager.GetOneDriveService(input);
-            var byteArray = await service.GetOneDriveContentsAsByteArrayAsync(input);
+            var byteArray = await _service.GetOneDriveContentsAsByteArrayAsync(input, cancellationToken);
             return Encoding.UTF8.GetString(byteArray);
         }
 
         async Task<Stream> IAsyncConverter<OneDriveAttribute, Stream>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
         {
-            var service = await _serviceManager.GetOneDriveService(input);
-            return await service.GetOneDriveContentsAsStreamAsync(input);
+            return await _service.GetOneDriveContentsAsStreamAsync(input, cancellationToken);
         }
 
         async Task<DriveItem> IAsyncConverter<OneDriveAttribute, DriveItem>.ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
         {
-            var service = await _serviceManager.GetOneDriveService(input);
-            return await service.GetOneDriveItemAsync(input);
+            return await _service.GetOneDriveItemAsync(input, cancellationToken);
+        }
+
+        public async Task<IAsyncCollector<byte[]>> ConvertAsync(OneDriveAttribute input, CancellationToken cancellationToken)
+        {
+            return new OneDriveAsyncCollector(_service, input);
         }
     }
 }

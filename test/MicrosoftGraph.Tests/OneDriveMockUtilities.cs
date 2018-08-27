@@ -6,6 +6,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
     using System;
     using System.IO;
     using System.Linq.Expressions;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Graph;
     using Moq;
@@ -20,7 +21,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .ItemWithPath(It.IsAny<string>())
                 .Content
                 .Request(null)
-                .GetAsync())
+                .GetAsync(It.IsAny<CancellationToken>(), System.Net.Http.HttpCompletionOption.ResponseContentRead))
                 .Returns(Task.FromResult(returnValue));
         } 
 
@@ -31,7 +32,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Root
                 .Content
                 .Request(null)
-                .GetAsync())
+                .GetAsync(It.IsAny<CancellationToken>(), System.Net.Http.HttpCompletionOption.ResponseContentRead))
                 .Returns(Task.FromResult(returnValue));
         }
 
@@ -43,7 +44,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Root
                 .Content
                 .Request(null)
-                .GetAsync());
+                .GetAsync(It.IsAny<CancellationToken>(), System.Net.Http.HttpCompletionOption.ResponseContentRead));
 
             //Then verify sharetoken correct
             mock.Verify(client => client
@@ -58,7 +59,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Root
                 .ItemWithPath(It.IsAny<string>())
                 .Request()
-                .GetAsync())
+                .GetAsync(It.IsAny<CancellationToken>()))
                 .Returns(Task.FromResult(returnValue));
         }
 
@@ -71,7 +72,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .ItemWithPath(It.IsAny<string>())
                 .Content
                 .Request(null)
-                .PutAsync<DriveItem>(It.IsAny<Stream>()))
+                .PutAsync<DriveItem>(It.IsAny<Stream>(), It.IsAny<CancellationToken>(), System.Net.Http.HttpCompletionOption.ResponseContentRead))
                 .Returns(Task.FromResult(returnValue));
         }
 
@@ -84,7 +85,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .ItemWithPath(path)
                 .Content
                 .Request(null)
-                .PutAsync<DriveItem>(It.Is<Stream>(streamCondition)));
+                .PutAsync<DriveItem>(It.Is<Stream>(streamCondition), It.IsAny<CancellationToken>(), System.Net.Http.HttpCompletionOption.ResponseContentRead));
         }
 
     }
