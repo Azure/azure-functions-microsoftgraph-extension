@@ -6,8 +6,6 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests")]
 namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
-    using System.Threading;
-    using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Azure.WebJobs.Host.Config;
     using Microsoft.Extensions.Options;

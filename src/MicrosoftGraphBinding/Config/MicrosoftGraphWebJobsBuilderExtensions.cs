@@ -1,10 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
+﻿
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
 {
+    using System;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Extensions.DependencyInjection;
+
     internal static class MicrosoftGraphWebJobsBuilderExtensions
     {
         public static IWebJobsBuilder AddMicrosoftGraph(this IWebJobsBuilder builder)
@@ -17,8 +18,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
             builder.AddExtension<MicrosoftGraphExtensionConfigProvider>()
                 .BindOptions<GraphOptions>()
                 .Services
+                .AddAuthTokenServices()
                 .AddSingleton<IGraphServiceClientProvider, GraphServiceClientProvider>()
-                .AddSingleton<IGraphSubscriptionStore, IGraphSubscriptionStore>();
+                .AddSingleton<IGraphSubscriptionStore, WebhookSubscriptionStore>();
             return builder;
         }
 

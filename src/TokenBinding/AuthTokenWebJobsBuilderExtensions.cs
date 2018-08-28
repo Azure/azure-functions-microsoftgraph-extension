@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
-    internal static class AuthTokenWebJobsBuilderExtensions
+    public static class AuthTokenWebJobsBuilderExtensions
     {
         public static IWebJobsBuilder AddAuthToken(this IWebJobsBuilder builder)
         {
@@ -32,6 +32,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
             builder.AddExtension<AuthTokenExtensionConfigProvider>();
             return builder;
+        }
+
+        public static IServiceCollection AddAuthTokenServices(this IServiceCollection services)
+        {
+            services.AddSingleton<IEasyAuthClient, EasyAuthTokenClient>()
+                .AddSingleton<IAadClient, AadClient>();
+            return services;
         }
     }
 }
