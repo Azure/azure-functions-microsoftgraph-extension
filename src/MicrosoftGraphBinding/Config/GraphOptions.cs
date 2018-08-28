@@ -2,11 +2,10 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
 using System;
-using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
 {
-    public class GraphOptions : TokenOptions
+    public class GraphOptions
     {
         public string SubscriptionStoreLocationAppSettingName { get; set; } = "BYOB_TokenMap";
 
@@ -16,13 +15,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
 
         public TimeSpan WebhookExpirationTimeSpan { get; set; } = new TimeSpan(0, 0, 4230, 0);
 
-        public override void SetAppSettings(INameResolver appSettings)
+        public void SetAppSettings(INameResolver appSettings)
         {
             if (TokenMapLocation == null)
             {
                 TokenMapLocation = appSettings.Resolve(SubscriptionStoreLocationAppSettingName);
             }
-            base.SetAppSettings(appSettings);
         }
     }
 }

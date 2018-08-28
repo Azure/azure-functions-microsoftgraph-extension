@@ -10,7 +10,7 @@ namespace Microsoft.Azure.WebJobs
     /// Files must be on OneDrive
     /// </summary>
     [Binding]
-    public class ExcelAttribute : GraphTokenAttribute
+    public class ExcelAttribute : GraphTokenBaseAttribute
     {
         /// <summary>
         /// Gets or sets path FROM ONEDRIVE ROOT to Excel file

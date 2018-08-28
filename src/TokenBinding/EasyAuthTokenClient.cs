@@ -32,7 +32,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             _options = options.Value;
         }
 
-        public async Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(JwtSecurityToken jwt, TokenAttribute attribute)
+        public async Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(JwtSecurityToken jwt, TokenBaseAttribute attribute)
         {
             // Send the token to the local /.auth/me endpoint and return the JSON
             string meUrl = $"https://{_options.HostName}/.auth/me?provider={attribute.IdentityProvider}";
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
         }
 
-        public async Task RefreshToken(JwtSecurityToken jwt, TokenAttribute attribute)
+        public async Task RefreshToken(JwtSecurityToken jwt, TokenBaseAttribute attribute)
         {
             if (string.IsNullOrEmpty(attribute.Resource))
             {

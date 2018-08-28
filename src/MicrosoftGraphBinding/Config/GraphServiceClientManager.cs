@@ -14,7 +14,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
     internal class GraphServiceClientManager
     {
-        private readonly IAsyncConverter<TokenAttribute, string> _tokenProvider;
+        private readonly IAsyncConverter<TokenBaseAttribute, string> _tokenProvider;
         private readonly IGraphServiceClientProvider _clientProvider;
         private readonly GraphOptions _options;
 
@@ -23,7 +23,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         private ConcurrentDictionary<string, CachedClient> _clients = new ConcurrentDictionary<string, CachedClient>();
 
-        public GraphServiceClientManager(GraphOptions options, IAsyncConverter<TokenAttribute, string> tokenProvider, IGraphServiceClientProvider clientProvider)
+        public GraphServiceClientManager(GraphOptions options, IAsyncConverter<TokenBaseAttribute, string> tokenProvider, IGraphServiceClientProvider clientProvider)
         {
             _tokenProvider = tokenProvider;
             _clientProvider = clientProvider;
@@ -107,7 +107,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="attribute">Token attribute with either principal ID or ID token</param>
         /// <returns>Authenticated GSC</returns>
-        public virtual async Task<IGraphServiceClient> GetMSGraphClientFromTokenAttributeAsync(TokenAttribute attribute, CancellationToken cancellationToken)
+        public virtual async Task<IGraphServiceClient> GetMSGraphClientFromTokenAttributeAsync(TokenBaseAttribute attribute, CancellationToken cancellationToken)
         {
             string token = await this._tokenProvider.ConvertAsync(attribute, cancellationToken);
             string principalId = GetTokenOID(token);

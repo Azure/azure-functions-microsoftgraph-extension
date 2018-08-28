@@ -1,4 +1,5 @@
-﻿
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
 {
@@ -17,8 +18,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
 
             builder.AddExtension<MicrosoftGraphExtensionConfigProvider>()
                 .BindOptions<GraphOptions>()
+                .BindOptions<TokenOptions>()
                 .Services
                 .AddAuthTokenServices()
+                .AddSingleton<IAsyncConverter<TokenBaseAttribute, string>, TokenConverter>()
                 .AddSingleton<IGraphServiceClientProvider, GraphServiceClientProvider>()
                 .AddSingleton<IGraphSubscriptionStore, WebhookSubscriptionStore>();
             return builder;

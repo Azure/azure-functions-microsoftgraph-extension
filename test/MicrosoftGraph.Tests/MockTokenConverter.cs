@@ -11,12 +11,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
     using System.Threading.Tasks;
     using Microsoft.IdentityModel.Tokens;
 
-    internal class MockTokenConverter : IAsyncConverter<TokenAttribute, string>
+    internal class MockTokenConverter : IAsyncConverter<TokenBaseAttribute, string>
     {
         private readonly string _secretKey = "dummy_secret_key";
         private readonly JwtSecurityTokenHandler _tokenHandler = new JwtSecurityTokenHandler();
 
-        public Task<string> ConvertAsync(TokenAttribute input, CancellationToken cancellationToken)
+        public Task<string> ConvertAsync(TokenBaseAttribute input, CancellationToken cancellationToken)
         {
             ClaimsIdentity identity = new ClaimsIdentity();
             identity.AddClaim(new Claim(ClaimTypes.Name, "Sample"));

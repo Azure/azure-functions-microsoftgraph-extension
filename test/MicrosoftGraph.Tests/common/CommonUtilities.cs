@@ -30,7 +30,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                     appSettings = appSettings ?? new DefaultNameResolver();
                     subscriptionStore = subscriptionStore ?? new MemorySubscriptionStore();
                     services.AddSingleton<ITypeLocator>(new FakeTypeLocator<T>());
-                    services.AddSingleton<IAsyncConverter<TokenAttribute, string>>(new MockTokenConverter());
+                    services.AddSingleton<IAsyncConverter<TokenBaseAttribute, string>>(new MockTokenConverter());
                     services.AddSingleton<IGraphServiceClientProvider>(new MockGraphServiceClientProvider(client.Object));
                     services.AddSingleton<IGraphSubscriptionStore>(subscriptionStore);
                     services.AddSingleton<INameResolver>(appSettings);

@@ -10,7 +10,7 @@ namespace Microsoft.Azure.WebJobs
     /// Binding to O365 OneDrive.
     /// </summary>
     [Binding]
-    public class OneDriveAttribute : GraphTokenAttribute
+    public class OneDriveAttribute : GraphTokenBaseAttribute
     {
         /// <summary>
         /// Gets or sets path FROM ONEDRIVE ROOT to file

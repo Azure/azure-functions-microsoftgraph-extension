@@ -6,16 +6,12 @@ namespace Microsoft.Azure.WebJobs
     using Microsoft.Azure.WebJobs.Description;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph;
 
-    /// <summary>
-    /// Abstract attribute to be base class for all Graph-based binding attributes
-    /// </summary>
-    [Binding]
-    public abstract class GraphTokenAttribute : TokenAttribute
+    public abstract class GraphTokenBaseAttribute : TokenBaseAttribute
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="GraphTokenAttribute"/> class.
+        /// Initializes a new instance of the <see cref="GraphTokenBaseAttribute"/> class.
         /// </summary>
-        public GraphTokenAttribute()
+        public GraphTokenBaseAttribute()
         {
             this.Resource = O365Constants.GraphBaseUrl;
         }

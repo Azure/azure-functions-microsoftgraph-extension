@@ -41,7 +41,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             ILoggerFactory loggerFactory, 
             IGraphServiceClientProvider graphClientProvider, 
             INameResolver appSettings,
-            IAsyncConverter<TokenAttribute, string> tokenConverter,
+            IAsyncConverter<TokenBaseAttribute, string> tokenConverter,
             IGraphSubscriptionStore subscriptionStore)
         {
             _options = options.Value;

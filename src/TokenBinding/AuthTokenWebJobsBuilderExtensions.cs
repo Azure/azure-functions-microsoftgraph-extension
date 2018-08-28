@@ -1,11 +1,12 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-using System;
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
+
+    using System;
+    using Microsoft.Extensions.DependencyInjection;
+
     public static class AuthTokenWebJobsBuilderExtensions
     {
         public static IWebJobsBuilder AddAuthToken(this IWebJobsBuilder builder)

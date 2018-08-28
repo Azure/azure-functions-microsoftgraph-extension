@@ -1,13 +1,16 @@
-﻿using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Options;
+﻿// Copyright (c) .NET Foundation. All rights reserved.
+// Licensed under the MIT License. See License.txt in the project root for license information.
 
 namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
-    internal class TokenConverter : IAsyncConverter<TokenAttribute, string>
+    using System;
+    using System.IdentityModel.Tokens.Jwt;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Extensions.Options;
+
+    public class TokenConverter : IAsyncConverter<TokenAttribute, string>, IAsyncConverter<TokenBaseAttribute, string>
     {
         private IOptions<TokenOptions> _options;
         private IAadClient _aadManager;
@@ -17,20 +20,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// Initializes a new instance of the <see cref="Converters"/> class.
         /// </summary>
         /// <param name="parent">TokenExtensionConfig containing necessary context & methods</param>
-        internal TokenConverter(IOptions<TokenOptions> options, IEasyAuthClient easyAuthClient, IAadClient aadClient)
+        public TokenConverter(IOptions<TokenOptions> options, IEasyAuthClient easyAuthClient, IAadClient aadClient)
         {
             _options = options;
             _easyAuthClient = easyAuthClient;
             _aadManager = aadClient;
         }
 
-        /// <summary>
-        /// Convert from a TokenAttribute to a string (to use as input to a fx)
-        /// </summary>
-        /// <param name="input">TokenAttribute with necessary user info & desired resource</param>
-        /// <param name="cancellationToken">Used to propagate notifications</param>
-        /// <returns>JWT</returns>
-        public async Task<string> ConvertAsync(TokenAttribute attribute, CancellationToken cancellationToken)
+        public async Task<string> ConvertAsync(TokenBaseAttribute attribute, CancellationToken cancellationToken)
         {
             attribute.CheckValidity();
             switch (attribute.Identity)
@@ -47,6 +44,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
 
             throw new InvalidOperationException("Unable to authorize without Principal ID or ID Token.");
+        }
+
+        public async Task<string> ConvertAsync(TokenAttribute attribute, CancellationToken cancellationToken)
+        {
+            return await ConvertAsync(attribute as TokenBaseAttribute, cancellationToken);
         }
 
         private async Task<string> GetAuthTokenFromUserToken(string userToken, string resource)

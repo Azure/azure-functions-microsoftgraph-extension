@@ -39,7 +39,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// </summary>
         /// <param name="attribute">The metadata for the token to grab</param>
         /// <returns>Task with Token Store entry of the token</returns>
-        public async Task<string> GetEasyAuthAccessTokenAsync(TokenAttribute attribute)
+        public async Task<string> GetEasyAuthAccessTokenAsync(TokenBaseAttribute attribute)
         {
             var jwt = CreateTokenForEasyAuthAccess(attribute);
             EasyAuthTokenStoreEntry tokenStoreEntry = await _client.GetTokenStoreEntry(jwt, attribute);
@@ -70,7 +70,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             return provider.Equals("AAD", StringComparison.OrdinalIgnoreCase);
         }
 
-        private JwtSecurityToken CreateTokenForEasyAuthAccess(TokenAttribute attribute)
+        private JwtSecurityToken CreateTokenForEasyAuthAccess(TokenBaseAttribute attribute)
         {
             if (string.IsNullOrEmpty(attribute.UserId))
             {

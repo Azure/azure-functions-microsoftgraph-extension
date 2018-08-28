@@ -8,7 +8,7 @@ namespace Microsoft.Azure.WebJobs
 
     // This is used to retrieve the locally stored subscriptions
     [Binding]
-    public class GraphWebhookSubscriptionAttribute : GraphTokenAttribute
+    public class GraphWebhookSubscriptionAttribute : GraphTokenBaseAttribute
     {
         private string _filter;
 
