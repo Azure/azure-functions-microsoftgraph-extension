@@ -99,11 +99,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         {
             var client = await _clientManager.GetMSGraphClientFromTokenAttributeAsync(_attribute, token);
             var subscriptionIds = _values;
-
-            foreach (string id in subscriptionIds)
-            {
-                await DeleteSubscription(client, id);
-            }
+            await Task.WhenAll(subscriptionIds.Select(id => DeleteSubscription(client, id)));
         }
 
         private async Task DeleteSubscription(IGraphServiceClient client, string id)
@@ -128,11 +124,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         {
             var client = await _clientManager.GetMSGraphClientFromTokenAttributeAsync(_attribute, token);
             var subscriptionIds = _values;
-
-            foreach (var id in subscriptionIds)
-            {
-                await RefreshSubscription(client, id);
-            }
+            await Task.WhenAll(subscriptionIds.Select(id => RefreshSubscription(client, id)));
         }
 
         private async Task RefreshSubscription(IGraphServiceClient client, string id)
