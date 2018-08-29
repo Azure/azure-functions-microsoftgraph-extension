@@ -10,6 +10,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Linq;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
+    using Microsoft.Extensions.Options;
     using Microsoft.Graph;
     using Newtonsoft.Json;
     using File = System.IO.File;
@@ -19,7 +20,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// </summary>
     internal class WebhookSubscriptionStore : IGraphSubscriptionStore
     {
-        private string root; // @"C:\temp\sub";
+        private readonly GraphOptions _options;
 
         private FileLock _fileLock;
 
@@ -29,24 +30,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// If it doesn't exist, create directory
         /// </summary>
         /// <param name="home">Value of app setting used to det. webhook token cache path</param>
-        public WebhookSubscriptionStore(string home)
+        public WebhookSubscriptionStore(IOptions<GraphOptions> options)
         {
-            this.root = home ?? O365Constants.DefaultBYOBLocation;
+            _options = options.Value;
             _fileLock = new FileLock();
-            _fileLock.PerformWriteIO(this.root, () => CreateRootDirectory(this.root));
+            _fileLock.PerformWriteIO(_options.TokenMapLocation, () => CreateRootDirectory());
         }
 
-        private static void CreateRootDirectory(string root)
+        private void CreateRootDirectory()
         {
-            if (!Directory.Exists(root))
+            if (!Directory.Exists(_options.TokenMapLocation))
             {
-                Directory.CreateDirectory(root);
+                Directory.CreateDirectory(_options.TokenMapLocation);
             }
         }
 
         private string GetSubscriptionPath(string subscriptionId)
         {
-            return Path.Combine(this.root, subscriptionId);
+            return Path.Combine(_options.TokenMapLocation, subscriptionId);
         }
 
         private string GetSubscriptionPath(Subscription subscription)
@@ -68,7 +69,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         public async Task<SubscriptionEntry[]> GetAllSubscriptionsAsync()
         {
-            var subscriptionPaths = await _fileLock.PerformReadIOAsync<IEnumerable<string>>(this.root, Directory.EnumerateFiles);
+            var subscriptionPaths = await _fileLock.PerformReadIOAsync<IEnumerable<string>>(_options.TokenMapLocation, Directory.EnumerateFiles);
             var entryTasks = subscriptionPaths.Select(path => this.GetAsyncFromPath(path));
             return await Task.WhenAll(entryTasks);
         }

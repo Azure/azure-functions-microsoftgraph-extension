@@ -5,12 +5,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
 {
     using System;
     using System.Collections.Generic;
-    using Microsoft.Azure.WebJobs.Host.Bindings;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
 
-    internal class OutlookConverter : IConverter<JObject, Message>, IConverter<string, Message>
+    internal class OutlookConverter : IConverter<JObject, Message>, IConverter<string, Message>, IAsyncConverter<OutlookAttribute, IAsyncCollector<Message>>
     {
+        private OutlookService _outlookService;
+
+        public OutlookConverter(OutlookService outlookService)
+        {
+            _outlookService = outlookService;
+        }
+
         public Message Convert(JObject input)
         {
             // Set up recipient(s)
@@ -90,17 +99,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
             }
             return value.ToObject<T>();
         }
+
+        public async Task<IAsyncCollector<Message>> ConvertAsync(OutlookAttribute input, CancellationToken cancellationToken)
+        {
+            return new OutlookAsyncCollector(_outlookService, input);
+        }
     }
 
     // This converter goes directly to Message instead of T -> JObject and composing 
     // with JObject -> Message as composition conversions with OpenTypes are broken
     internal class OutlookGenericsConverter<T> : IConverter<T, Message>
     {
-        private static readonly OutlookConverter Converter = new OutlookConverter(); 
+        private readonly OutlookConverter _converter;
+
+        public OutlookGenericsConverter(OutlookService service)
+        {
+            _converter = new OutlookConverter(service);
+        }
 
         public Message Convert(T input)
         {
-            return Converter.Convert(JObject.FromObject(input));
+            return _converter.Convert(JObject.FromObject(input));
         }
     }
 }

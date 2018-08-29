@@ -7,39 +7,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
     using System.Collections.Concurrent;
     using System.IdentityModel.Tokens.Jwt;
     using System.Linq;
-    using System.Net.Http.Headers;
+    using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Graph;
 
-    internal class ServiceManager
+    internal class GraphServiceClientManager
     {
-
-        internal AuthTokenExtensionConfig _tokenExtension;
+        private readonly IAsyncConverter<TokenBaseAttribute, string> _tokenProvider;
+        private readonly IGraphServiceClientProvider _clientProvider;
+        private readonly GraphOptions _options;
 
         /// <summary>
         /// Map principal Id + scopes -> GraphServiceClient + token expiration date
         /// </summary>
         private ConcurrentDictionary<string, CachedClient> _clients = new ConcurrentDictionary<string, CachedClient>();
 
-        public ServiceManager(AuthTokenExtensionConfig config)
+        public GraphServiceClientManager(GraphOptions options, IAsyncConverter<TokenBaseAttribute, string> tokenProvider, IGraphServiceClientProvider clientProvider)
         {
-            _tokenExtension = config;
-        }
-
-        public async Task<ExcelService> GetExcelService(ExcelAttribute attribute)
-        {
-            return new ExcelService(await GetMSGraphClientAsync(attribute));
-        }
-
-        public async Task<OutlookService> GetOutlookService(OutlookAttribute attribute)
-        {
-            return new OutlookService(await GetMSGraphClientAsync(attribute));
-        }
-
-        public async Task<OneDriveService> GetOneDriveService(OneDriveAttribute attribute)
-        {
-            return new OneDriveService(await GetMSGraphClientAsync(attribute));
+            _tokenProvider = tokenProvider;
+            _clientProvider = clientProvider;
+            _options = options;
         }
 
         /// <summary>
@@ -47,7 +35,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="rawToken">JWT</param>
         /// <returns>Token audience</returns>
-        public static string GetTokenOID(string rawToken)
+        private static string GetTokenOID(string rawToken)
         {
             var jwt = new JwtSecurityToken(rawToken);
             var oidClaim = jwt.Claims.FirstOrDefault(claim => claim.Type == "oid");
@@ -101,16 +89,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="moniker">string representing serialized TokenAttribute</param>
         /// <returns>Authenticated GraphServiceClient</returns>
-        internal async Task<IGraphServiceClient> GetMSGraphClientFromUserIdAsync(string userId)
+        public async Task<IGraphServiceClient> GetMSGraphClientFromUserIdAsync(string userId, CancellationToken token)
         {
             var attr = new TokenAttribute
             {
                 UserId = userId,
-                Resource = O365Constants.GraphBaseUrl,
+                Resource = _options.GraphBaseUrl,
                 Identity = TokenIdentityMode.UserFromId,
             };
 
-            return await this.GetMSGraphClientAsync(attr);
+            return await this.GetMSGraphClientFromTokenAttributeAsync(attr, token);
         }
 
         /// <summary>
@@ -119,53 +107,39 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// </summary>
         /// <param name="attribute">Token attribute with either principal ID or ID token</param>
         /// <returns>Authenticated GSC</returns>
-        public virtual async Task<IGraphServiceClient> GetMSGraphClientAsync(TokenAttribute attribute)
+        public virtual async Task<IGraphServiceClient> GetMSGraphClientFromTokenAttributeAsync(TokenBaseAttribute attribute, CancellationToken cancellationToken)
         {
-            string token = await this._tokenExtension.GetAccessTokenAsync(attribute);
+            string token = await this._tokenProvider.ConvertAsync(attribute, cancellationToken);
             string principalId = GetTokenOID(token);
 
             var key = string.Concat(principalId, " ", GetTokenOrderedScopes(token));
 
-            CachedClient client = null;
+            CachedClient cachedClient = null;
 
             // Check to see if there already exists a GSC associated with this principal ID and the token scopes.
-            if (this._clients.TryGetValue(key, out client))
+            if (_clients.TryGetValue(key, out cachedClient))
             {
                 // Check if token is expired
-                if (client.expirationDate < DateTimeOffset.Now.ToUnixTimeSeconds())
+                if (cachedClient.expirationDate < DateTimeOffset.Now.ToUnixTimeSeconds())
                 {
                     // Need to update the client's token & expiration date
                     // $$ todo -- just reset token instead of whole new authentication provider?
-                    client.client.AuthenticationProvider = new DelegateAuthenticationProvider(
-                        (requestMessage) =>
-                        {
-                            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
-
-                            return Task.CompletedTask;
-                        });
-                    client.expirationDate = GetTokenExpirationDate(token);
+                    _clientProvider.UpdateGraphServiceClientAuthToken(cachedClient.client, token);
+                    cachedClient.expirationDate = GetTokenExpirationDate(token);
                 }
 
-                return client.client;
+                return cachedClient.client;
             }
             else
             {
-                client = new CachedClient
+                cachedClient = new CachedClient
                 {
-                    client = new GraphServiceClient(
-                        new DelegateAuthenticationProvider(
-                            (requestMessage) =>
-                            {
-                                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("bearer", token);
-                                return Task.CompletedTask;
-                            })),
+                    client = _clientProvider.CreateNewGraphServiceClient(token),
                     expirationDate = GetTokenExpirationDate(token),
                 };
-                this._clients.TryAdd(key, client);
-                return client.client;
+                _clients.TryAdd(key, cachedClient);
+                return cachedClient.client;
             }
         }
-
-
     }
 }

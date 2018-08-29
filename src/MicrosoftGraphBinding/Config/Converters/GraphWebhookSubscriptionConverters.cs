@@ -20,29 +20,34 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
             IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>,
             IAsyncConverter<GraphWebhookSubscriptionAttribute, JArray>
         {
-            private readonly ServiceManager _serviceManager;
-            private readonly GraphWebhookConfig _webhookConfig;
+            private readonly GraphServiceClientManager _clientManager;
+            private readonly IGraphSubscriptionStore _subscriptionStore;
+            private readonly GraphOptions _options;
 
-            public GraphWebhookSubscriptionConverter(ServiceManager serviceManager, GraphWebhookConfig webhookConfig)
+            public GraphWebhookSubscriptionConverter(GraphServiceClientManager clientManager, GraphOptions options, IGraphSubscriptionStore subscriptionStore)
             {
-                _serviceManager = serviceManager;
-                _webhookConfig = webhookConfig;
+                _options = options;
+                _clientManager = clientManager;
+                _subscriptionStore = subscriptionStore;
             }
 
             async Task<Subscription[]> IAsyncConverter<GraphWebhookSubscriptionAttribute, Subscription[]>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
             {
-                return (await GetSubscriptionsFromAttribute(input)).Select(entry => entry.Subscription).ToArray();
+                return (await GetSubscriptionsFromAttributeAsync(input, cancellationToken))
+                    .Select(entry => entry.Subscription)
+                    .ToArray();
             }
 
             async Task<string[]> IAsyncConverter<GraphWebhookSubscriptionAttribute, string[]>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
             {
-                Subscription[] subscriptions = (await GetSubscriptionsFromAttribute(input)).Select(entry => entry.Subscription).ToArray();
-                return subscriptions.Select(sub => sub.Id).ToArray();
+                return (await GetSubscriptionsFromAttributeAsync(input, cancellationToken))
+                    .Select(entry => entry.Subscription.Id)
+                    .ToArray();
             }
 
             async Task<JArray> IAsyncConverter<GraphWebhookSubscriptionAttribute, JArray>.ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
             {
-                SubscriptionEntry[] subscriptions = await GetSubscriptionsFromAttribute(input);
+                SubscriptionEntry[] subscriptions = await GetSubscriptionsFromAttributeAsync(input, cancellationToken);
                 var serializedSubscriptions = new JArray();
                 foreach (var subscription in subscriptions)
                 {
@@ -51,19 +56,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
                 return serializedSubscriptions;
             }
 
-            protected async Task<SubscriptionEntry[]> GetSubscriptionsFromAttribute(GraphWebhookSubscriptionAttribute attribute)
+            protected async Task<SubscriptionEntry[]> GetSubscriptionsFromAttributeAsync(GraphWebhookSubscriptionAttribute attribute, CancellationToken cancellationToken)
             {
-                IEnumerable<SubscriptionEntry> subscriptionEntries = await _webhookConfig.SubscriptionStore.GetAllSubscriptionsAsync();
+                IEnumerable<SubscriptionEntry> subscriptionEntries = await _subscriptionStore.GetAllSubscriptionsAsync();
                 if (TokenIdentityMode.UserFromRequest.ToString().Equals(attribute.Filter, StringComparison.OrdinalIgnoreCase))
                 {
                     var dummyTokenAttribute = new TokenAttribute()
                     {
-                        Resource = O365Constants.GraphBaseUrl,
+                        Resource = _options.GraphBaseUrl,
                         Identity = TokenIdentityMode.UserFromToken,
                         UserToken = attribute.UserToken,
                         IdentityProvider = "AAD",
                     };
-                    var graph = await _serviceManager.GetMSGraphClientAsync(dummyTokenAttribute);
+                    var graph = await _clientManager.GetMSGraphClientFromTokenAttributeAsync(dummyTokenAttribute, cancellationToken);
                     var user = await graph.Me.Request().GetAsync();
                     subscriptionEntries = subscriptionEntries.Where(entry => entry.UserId.Equals(user.Id));
                 }
@@ -78,13 +83,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
         internal class GenericGraphWebhookSubscriptionConverter<T> : GraphWebhookSubscriptionConverter,
             IAsyncConverter<GraphWebhookSubscriptionAttribute, T[]>
         {
-            public GenericGraphWebhookSubscriptionConverter(ServiceManager serviceManager, GraphWebhookConfig webhookConfig) : base(serviceManager, webhookConfig)
+            public GenericGraphWebhookSubscriptionConverter(GraphServiceClientManager clientManager, GraphOptions options, IGraphSubscriptionStore subscriptionStore) : base(clientManager, options, subscriptionStore)
             {
             }
 
             public async Task<T[]> ConvertAsync(GraphWebhookSubscriptionAttribute input, CancellationToken cancellationToken)
             {
-                return ConvertSubscriptionEntries(await this.GetSubscriptionsFromAttribute(input));
+                return ConvertSubscriptionEntries(await this.GetSubscriptionsFromAttributeAsync(input, cancellationToken));
             }
 
             //Converts a Subscription Entry into a "flattened" POCO representation where the properties 
@@ -97,7 +102,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
                 var pocoProperties = pocoType.GetProperties();
 
                 T[] pocos = new T[entries.Length];
-                for(int i = 0; i < pocos.Length; i++)
+                for (int i = 0; i < pocos.Length; i++)
                 {
                     pocos[i] = (T)Activator.CreateInstance(typeof(T), new object[] { });
                 }
@@ -105,9 +110,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
                 foreach (PropertyInfo pocoProperty in pocoProperties)
                 {
                     var subscriptionProperty = subEntryType.GetProperty(pocoProperty.Name, pocoProperty.PropertyType);
-                    if(subscriptionProperty != null)
+                    if (subscriptionProperty != null)
                     {
-                        for(int i = 0; i < pocos.Length; i++)
+                        for (int i = 0; i < pocos.Length; i++)
                         {
                             pocoProperty.SetValue(pocos[i], subscriptionProperty.GetValue(entries[i].Subscription));
                         }

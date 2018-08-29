@@ -5,6 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
     using System.IO;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
@@ -54,7 +55,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
         public override void Close()
         {
-            Task.Run(() => _client.UploadOneDriveItemAsync(_path, _stream)).GetAwaiter().GetResult();
+            Task.Run(() => _client.UploadOneDriveItemAsync(_path, _stream, CancellationToken.None)).GetAwaiter().GetResult();
         }
 
         public override void Write(byte[] buffer, int offset, int count)

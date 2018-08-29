@@ -10,7 +10,7 @@ namespace Microsoft.Azure.WebJobs
     /// No additional info necessary, but remains separate class in order to maintain clarity
     /// </summary>
     [Binding]
-    public class OutlookAttribute : GraphTokenAttribute
+    public class OutlookAttribute : GraphTokenBaseAttribute
     {
     }
 }

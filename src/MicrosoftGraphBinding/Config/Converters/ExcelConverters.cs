@@ -7,9 +7,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
     using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Newtonsoft.Json.Linq;
     using Microsoft.Graph;
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
 
     internal class ExcelConverters
     {
@@ -19,11 +19,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
             IAsyncConverter<ExcelAttribute, IAsyncCollector<string>>,
             IConverter<JObject, string>
         {
-            private readonly ServiceManager _serviceManager;
+            private readonly ExcelService _service;
 
-            public ExcelConverter(ServiceManager serviceManager)
+            public ExcelConverter(ExcelService service)
             {
-                _serviceManager = serviceManager;
+                _service = service;
             }
 
             public string Convert(JObject input)
@@ -33,41 +33,37 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
 
             async Task<IAsyncCollector<string>> IAsyncConverter<ExcelAttribute, IAsyncCollector<string>>.ConvertAsync(ExcelAttribute attr, CancellationToken token)
             {
-                var manager = await _serviceManager.GetExcelService(attr);
-                return new ExcelAsyncCollector(manager, attr);
+                return new ExcelAsyncCollector(_service, attr);
             }
 
             async Task<string[][]> IAsyncConverter<ExcelAttribute, string[][]>.ConvertAsync(ExcelAttribute attr, CancellationToken cancellationToken)
             {
-                var service = await _serviceManager.GetExcelService(attr);
-                return await service.GetExcelRangeAsync(attr);
+                return await _service.GetExcelRangeAsync(attr, cancellationToken);
             }
 
             async Task<WorkbookTable> IAsyncConverter<ExcelAttribute, WorkbookTable>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var service = await _serviceManager.GetExcelService(input);
-                return await service.GetExcelTable(input);
+                return await _service.GetExcelTableAsync(input, cancellationToken);
             }
         }
 
         internal class ExcelGenericsConverter<T> : IAsyncConverter<ExcelAttribute, T[]>, 
             IConverter<T, string>
         {
-            private readonly ServiceManager _serviceManager;
+            private readonly ExcelService _service;
 
             /// <summary>
             /// Initializes a new instance of the <see cref="ExcelGenericsConverter{T}"/> class.
             /// </summary>
             /// <param name="parent">O365Extension to which the result of the request for data will be returned</param>
-            public ExcelGenericsConverter(ServiceManager serviceManager)
+            public ExcelGenericsConverter(ExcelService service)
             {
-                this._serviceManager = serviceManager;
+                _service = service;
             }
 
             async Task<T[]> IAsyncConverter<ExcelAttribute, T[]>.ConvertAsync(ExcelAttribute input, CancellationToken cancellationToken)
             {
-                var manager = await _serviceManager.GetExcelService(input);
-                return await manager.GetExcelRangePOCOAsync<T>(input);
+                return await _service.GetExcelRangePOCOAsync<T>(input, cancellationToken);
             }
 
             /// <summary>

@@ -25,7 +25,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = SendMessageMock();
 
-            await CommonUtilities.ExecuteFunction<OutlookFunctions>(clientMock, "OutlookFunctions.SendJObject");
+            await CommonUtilities.ExecuteFunction<OutlookFunctions>("OutlookFunctions.SendJObject", clientMock);
 
             clientMock.VerifySendMessage(msg => MessageEquals(msg, GetMessage()));
         }
@@ -35,7 +35,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = SendMessageMock();
 
-            await CommonUtilities.ExecuteFunction<OutlookFunctions>(clientMock, "OutlookFunctions.SendMessage");
+            await CommonUtilities.ExecuteFunction<OutlookFunctions>("OutlookFunctions.SendMessage", clientMock);
 
             clientMock.VerifySendMessage(msg => MessageEquals(msg, GetMessage()));
         }
@@ -45,7 +45,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = SendMessageMock();
 
-            await CommonUtilities.ExecuteFunction<OutlookFunctions>(clientMock, "OutlookFunctions.SendPoco");
+            await CommonUtilities.ExecuteFunction<OutlookFunctions>("OutlookFunctions.SendPoco", clientMock);
 
             clientMock.VerifySendMessage(msg => MessageEquals(msg, GetMessage()));
         }
@@ -55,7 +55,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
         {
             var clientMock = SendMessageMock();
 
-            await Assert.ThrowsAnyAsync<Exception>(async () => await CommonUtilities.ExecuteFunction<OutlookFunctions>(clientMock, "OutlookFunctions.NoRecipients"));
+            await Assert.ThrowsAnyAsync<Exception>(async () => await CommonUtilities.ExecuteFunction<OutlookFunctions>("OutlookFunctions.NoRecipients", clientMock));
             clientMock.VerifyDidNotSendMessage();
         }
 

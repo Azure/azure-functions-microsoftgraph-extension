@@ -8,12 +8,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     using System.IdentityModel.Tokens.Jwt;
     using System.Threading.Tasks;
 
-    internal interface IEasyAuthClient
+    public interface IEasyAuthClient
     {
-        Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(JwtSecurityToken jwt, TokenAttribute attribute);
+        Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(JwtSecurityToken jwt, TokenBaseAttribute attribute);
 
-        Task RefreshToken(JwtSecurityToken jwt, TokenAttribute attribute);
-
-        string GetBaseUrl();
+        Task RefreshToken(JwtSecurityToken jwt, TokenBaseAttribute attribute);
     }
 }

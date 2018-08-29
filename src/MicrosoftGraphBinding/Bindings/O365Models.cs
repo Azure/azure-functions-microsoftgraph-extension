@@ -12,7 +12,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// GraphServiceClient + time the token used to authenticate calls expires
     /// </summary>
     internal class CachedClient {
-        internal GraphServiceClient client;
+        internal IGraphServiceClient client;
         internal int expirationDate;
     }
 

@@ -9,11 +9,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     using System.Net;
     using System.Net.Http;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
-    using Microsoft.Azure.WebJobs.Host;
     using Microsoft.Extensions.Logging;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
@@ -21,28 +21,30 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     // Handles the subscription validation and notification payloads
     internal class GraphWebhookSubscriptionHandler
     {
-        private readonly GraphWebhookConfig _config; // already has token
+        private readonly IGraphSubscriptionStore _subscriptionStore; // already has token
+        private readonly Uri _notificationUri;
         private readonly ILogger _log;
-        private readonly ServiceManager _manager;
+        private readonly GraphServiceClientManager _clientManager;
+        private readonly WebhookTriggerBindingProvider _bindingProvider;
 
-        public GraphWebhookSubscriptionHandler(ServiceManager manager, GraphWebhookConfig config, ILoggerFactory loggerFactory)
+        public GraphWebhookSubscriptionHandler(GraphServiceClientManager clientManager, IGraphSubscriptionStore subscriptionStore, ILoggerFactory loggerFactory, Uri notificationUri, WebhookTriggerBindingProvider bindingProvider)
         {
-            _manager = manager;
-            _config = config;
-            _log = loggerFactory?.CreateLogger(MicrosoftGraphExtensionConfig.CreateBindingCategory("GraphWebhookSubscription"));
+            _clientManager = clientManager;
+            _subscriptionStore = subscriptionStore;
+            _log = loggerFactory?.CreateLogger(MicrosoftGraphExtensionConfigProvider.CreateBindingCategory("GraphWebhookSubscription"));
+            _notificationUri = notificationUri;
+            _bindingProvider = bindingProvider;
         }
 
-        private async Task HandleNotifications(NotificationPayload notifications)
+        private async Task HandleNotificationsAsync(NotificationPayload notifications, CancellationToken cancellationToken)
         {
             // A single webhook might get notifications from different users. 
             List<WebhookTriggerData> resources = new List<WebhookTriggerData>();
 
-            var subscriptionStore = _config.SubscriptionStore;
-
             foreach (Notification notification in notifications.Value)
             {
                 var subId = notification.SubscriptionId;
-                var entry = await subscriptionStore.GetSubscriptionEntryAsync(subId);
+                var entry = await _subscriptionStore.GetSubscriptionEntryAsync(subId);
                 if (entry == null)
                 {
                     _log.LogError($"No subscription exists in our store for subscription id: {subId}");
@@ -59,7 +61,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 
                 // call onto Graph to fetch the resource
                 var userId = entry.UserId;
-                var graphClient = await _manager.GetMSGraphClientFromUserIdAsync(userId);
+                var graphClient = await _clientManager.GetMSGraphClientFromUserIdAsync(userId, cancellationToken);
 
                 _log.LogTrace($"A graph client was obtained for subscription id: {subId}");
 
@@ -114,7 +116,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             }
 
             _log.LogTrace($"Triggering {resources.Count} GraphWebhookTriggers");
-            Task[] webhookReceipts = resources.Select(item => _config.OnWebhookReceived(item)).ToArray();
+            Task[] webhookReceipts = resources.Select(item => _bindingProvider.PushDataAsync(item)).ToArray();
 
             Task.WaitAll(webhookReceipts);
             _log.LogTrace($"Finished responding to notifications.");
@@ -123,7 +125,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         // See here for subscribing and payload information.
         // https://developer.microsoft.com/en-us/graph/docs/api-reference/v1.0/api/subscription_post_subscriptions
         public async Task<HttpResponseMessage> ProcessAsync(
-            HttpRequestMessage request)
+            HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var nvc = HttpUtility.ParseQueryString(request.RequestUri.Query);
 
@@ -134,19 +136,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 return HandleInitialValidation(validationToken);
             }
 
-            return await HandleNotificationPayload(request);
+            return await HandleNotificationPayloadAsync(request, cancellationToken);
         }
 
         private HttpResponseMessage HandleInitialValidation(string validationToken)
         {
-            _log.LogTrace($"Returning a 200 OK Response to a request to {_config.NotificationUrl} with a validation token of {validationToken}");
+            _log.LogTrace($"Returning a 200 OK Response to a request to {_notificationUri} with a validation token of {validationToken}");
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(validationToken, Encoding.UTF8, "plain/text"),
             };
         }
 
-        private async Task<HttpResponseMessage> HandleNotificationPayload(HttpRequestMessage request)
+        private async Task<HttpResponseMessage> HandleNotificationPayloadAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             string json = await request.Content.ReadAsStringAsync();
             var notifications = JsonConvert.DeserializeObject<NotificationPayload>(json);
@@ -154,7 +156,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             _log.LogTrace($"Received a notification payload of {json}");
             // We have 30sec to reply to the payload.
             // So offload everything else (especially fetches back to the graph and executing the user function)
-            Task.Run(() => HandleNotifications(notifications));
+            Task.Run(() => HandleNotificationsAsync(notifications, cancellationToken));
 
             // Still return a 200 so the service doesn't resend the notification.
             return new HttpResponseMessage(HttpStatusCode.OK);

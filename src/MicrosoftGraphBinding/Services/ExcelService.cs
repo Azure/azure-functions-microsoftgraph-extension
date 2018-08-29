@@ -3,25 +3,28 @@
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 {
+    using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     internal class ExcelService
     {
-        private IGraphServiceClient _client;
+        private GraphServiceClientManager _clientProvider;
 
-        public ExcelService(IGraphServiceClient client)
+        public ExcelService(GraphServiceClientManager clientProvider)
         {
-            _client = client;
+            _clientProvider = clientProvider;
         }
 
-        internal Task<WorkbookTable> GetExcelTable(ExcelAttribute attr)
+        internal async Task<WorkbookTable> GetExcelTableAsync(ExcelAttribute attr, CancellationToken token)
         {
-            return _client.GetTableWorkbookAsync(attr.Path, attr.TableName);
+            IGraphServiceClient client = await _clientProvider.GetMSGraphClientFromTokenAttributeAsync(attr, token);
+            return await client.GetTableWorkbookAsync(attr.Path, attr.TableName, token);
         }
 
         /// <summary>
@@ -30,18 +33,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="client">GraphServiceClient that makes request</param>
         /// <param name="attr">Contains metadata (path, tablename, worksheet name) </param>
         /// <returns>string [][] containing table contents</returns>
-        internal async Task<string[][]> GetExcelRangeAsync(ExcelAttribute attr)
+        internal async Task<string[][]> GetExcelRangeAsync(ExcelAttribute attr, CancellationToken token)
         {
             WorkbookRange range;
+            IGraphServiceClient client = await _clientProvider.GetMSGraphClientFromTokenAttributeAsync(attr, token);
             // If TableName is set, then retrieve the contents of a table
             if (attr.TableName != null)
             {
-                range = await _client.GetTableWorkbookRangeAsync(attr.Path, attr.TableName);
+                range = await client.GetTableWorkbookRangeAsync(attr.Path, attr.TableName, token);
             }
             else
             {
                 // If TableName is NOT set, then retrieve either the contents or the formulas of the worksheet
-                range = await _client.GetWorksheetWorkbookAsync(attr.Path, attr.WorksheetName);
+                range = await client.GetWorksheetWorkbookAsync(attr.Path, attr.WorksheetName, token);
             }
             return range.Values.ToObject<string[][]>();
         }
@@ -52,10 +56,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="client">GraphServiceClient that makes request</param>
         /// <param name="attr">Contains metadata (path, tablename, worksheet name) </param>
         /// <returns>POCO Array of worksheet or table data</returns>
-        internal async Task<T[]> GetExcelRangePOCOAsync<T>(ExcelAttribute attr)
+        internal async Task<T[]> GetExcelRangePOCOAsync<T>(ExcelAttribute attr, CancellationToken token)
         {
             // If TableName is set, then retrieve the contents of a table
-            string[][] output = await GetExcelRangeAsync(attr);
+            string[][] output = await GetExcelRangeAsync(attr, token);
             string[] header = output[0];
             Dictionary<string, int> dict = new Dictionary<string, int>(); // Map string header value to its index
 
@@ -104,18 +108,19 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="attr">Excel Attribute with necessary data (workbook name, table name) to build request</param>
         /// <param name="jsonContent">JObject with the data to be added to the table</param>
         /// <returns>WorkbookTableRow that was just added</returns>
-        internal async Task AddRow(ExcelAttribute attr, JObject jsonContent)
+        internal async Task AddRowAsync(ExcelAttribute attr, JObject jsonContent, CancellationToken token)
         {
             /*
              * Two options:
              * 1. JObject created from POCO representing strongly typed table -- indicated by "Microsoft.O365Bindings.POCO" being set
              * 2. JObject "values" set to object[][], so simply post an update to specified table -- indicated by "Microsoft.O365Bindings.values" being set
             */
+            IGraphServiceClient client = await _clientProvider.GetMSGraphClientFromTokenAttributeAsync(attr, token);
 
             JToken newRow;
             if (jsonContent[O365Constants.POCOKey] != null)
             {
-                string[] headerRow = await _client.GetTableHeaderRowAsync(attr.Path, attr.TableName);
+                string[] headerRow = await client.GetTableHeaderRowAsync(attr.Path, attr.TableName, token);
                 jsonContent.Remove(O365Constants.POCOKey); // Remove now unnecessary flag
                 newRow = JArray.FromObject(POCOToStringArray(jsonContent, headerRow));
             }
@@ -128,7 +133,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
                 throw new KeyNotFoundException($"When appending a row, the '{O365Constants.ValuesKey}' or '{O365Constants.POCOKey}' key must be set");
             }
 
-            await _client.PostTableRowAsync(attr.Path, attr.TableName, newRow);
+            await client.PostTableRowAsync(attr.Path, attr.TableName, newRow, token);
         }
 
         /// <summary>
@@ -139,21 +144,22 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="attr">ExcelAttribute with workbook & worksheet names, starting row & column</param>
         /// <param name="jsonContent">Values with which to update worksheet plus metadata</param>
         /// <returns>WorkbookRange containing updated worksheet</returns>
-        internal async Task<WorkbookRange> UpdateWorksheet(ExcelAttribute attr, JObject jsonContent)
+        internal async Task<WorkbookRange> UpdateWorksheetAsync(ExcelAttribute attr, JObject jsonContent, CancellationToken token)
         {
+            IGraphServiceClient client = await _clientProvider.GetMSGraphClientFromTokenAttributeAsync(attr, token);
             // Retrieve current range of worksheet
-            var currentRange = await _client.GetWorksheetWorkbookAsync(attr.Path, attr.WorksheetName);
+            var currentRange = await client.GetWorksheetWorkbookAsync(attr.Path, attr.WorksheetName, token);
             var rowsToBeChanged = int.Parse(jsonContent[O365Constants.RowsKey].ToString());
             var fromTable = !string.IsNullOrEmpty(attr.TableName);
             string newRange = FindNewRange(currentRange.Address, rowsToBeChanged, fromTable);
 
             // Retrieve old workbook
-            WorkbookRange workbook = await _client.GetWorkSheetWorkbookInRangeAsync(attr.Path, attr.WorksheetName, newRange);
+            WorkbookRange workbook = await client.GetWorkSheetWorkbookInRangeAsync(attr.Path, attr.WorksheetName, newRange, token);
 
             JToken newRowArray;
             if (jsonContent[O365Constants.POCOKey] != null)
             {
-                string[] header = await _client.GetTableHeaderRowAsync(attr.Path, attr.TableName);
+                string[] header = await client.GetTableHeaderRowAsync(attr.Path, attr.TableName, token);
                 jsonContent.Remove(O365Constants.POCOKey); // Remove now unnecessary flag
                 var newRows = POCOToStringArray(jsonContent, header);
                 newRowArray = JArray.FromObject(newRows);
@@ -165,7 +171,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 
             // Update necessary fields
             PopulateWorkbookWithNewValue(workbook, newRowArray);
-            return await _client.PatchWorksheetAsync(attr.Path, attr.WorksheetName, newRange, workbook);
+            return await client.PatchWorksheetAsync(attr.Path, attr.WorksheetName, newRange, workbook, token);
         }
 
         /// <summary>
@@ -175,15 +181,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         /// <param name="attr">ExcelAttribute with path, table name, and worksheet name</param>
         /// <param name="job">JObject with two keys: 'column' and 'value'</param>
         /// <returns>Workbook range containing updated column</returns>
-        internal async Task<WorkbookRange> UpdateColumn(ExcelAttribute attr, JObject job)
+        internal async Task<WorkbookRange> UpdateColumnAsync(ExcelAttribute attr, JObject job, CancellationToken token)
         {
+            IGraphServiceClient client = await _clientProvider.GetMSGraphClientFromTokenAttributeAsync(attr, token);
             // The table API only allows updating or adding one row at a time.
             // Instead we update the worksheet range corresponding to the table
 
-            string currentTableRange = (await _client.GetTableWorkbookRangeAsync(attr.Path, attr.TableName)).Address;
+            string currentTableRange = (await client.GetTableWorkbookRangeAsync(attr.Path, attr.TableName, token)).Address;
 
             // Retrieve current worksheet rows
-            WorkbookRange currentTableWorkbook = await _client.GetWorkSheetWorkbookInRangeAsync(attr.Path, attr.WorksheetName, currentTableRange);
+            WorkbookRange currentTableWorkbook = await client.GetWorkSheetWorkbookInRangeAsync(attr.Path, attr.WorksheetName, currentTableRange, token);
 
             // Update specified column with specified value
             IEnumerable<string[]> values = currentTableWorkbook.Values.ToObject<IEnumerable<string[]>>();
@@ -211,7 +218,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
             var updateValues = JArray.FromObject(values);
 
             PopulateWorkbookWithNewValue(currentTableWorkbook, updateValues);
-            return await _client.PatchWorksheetAsync(attr.Path, attr.WorksheetName, currentTableRange, currentTableWorkbook);
+            return await client.PatchWorksheetAsync(attr.Path, attr.WorksheetName, currentTableRange, currentTableWorkbook, token);
         }
 
         /// <summary>

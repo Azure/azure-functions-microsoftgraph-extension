@@ -7,19 +7,18 @@ using System.Runtime.CompilerServices;
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs;
-    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Azure.WebJobs.Host.Bindings;
     using Microsoft.Azure.WebJobs.Host.Config;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Options;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
     using static Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters.ExcelConverters;
@@ -28,21 +27,30 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// <summary>
     /// WebJobs SDK Extension for O365 Token binding.
     /// </summary>
-    public class MicrosoftGraphExtensionConfig : IExtensionConfigProvider,
+    [Description.Extension("MicrosoftGraph")]
+    internal class MicrosoftGraphExtensionConfigProvider : IExtensionConfigProvider,
         IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {
-        internal ServiceManager _serviceManager { get; set; }
+        private readonly GraphServiceClientManager _graphServiceClientManager;
+        private readonly IGraphSubscriptionStore _subscriptionStore;
+        private readonly ILoggerFactory _loggerFactory;
+        private readonly GraphOptions _options;
+        private Uri _notificationUrl;
+        private WebhookTriggerBindingProvider _webhookTriggerProvider;
 
-        internal IGraphSubscriptionStore _subscriptionStore { get; set; }
-
-        internal GraphWebhookConfig _webhookConfig;
-
-        /// <summary>
-        /// Used to confer information, warnings, etc. to function app log
-        /// </summary>
-        internal ILoggerFactory _loggerFactory;
-
-        internal INameResolver _appSettings;
+        public MicrosoftGraphExtensionConfigProvider(IOptions<GraphOptions> options, 
+            ILoggerFactory loggerFactory, 
+            IGraphServiceClientProvider graphClientProvider, 
+            INameResolver appSettings,
+            IAsyncConverter<TokenBaseAttribute, string> tokenConverter,
+            IGraphSubscriptionStore subscriptionStore)
+        {
+            _options = options.Value;
+            _options.SetAppSettings(appSettings);
+            _graphServiceClientManager = new GraphServiceClientManager(_options, tokenConverter, graphClientProvider);
+            _subscriptionStore = subscriptionStore;
+            _loggerFactory = loggerFactory;
+        }
 
         /// <summary>
         /// Initialize the O365 binding extension
@@ -50,96 +58,61 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <param name="context">Context containing info relevant to this extension</param>
         public void Initialize(ExtensionConfigContext context)
         {
-            var config = context.Config;
-            _appSettings = config.NameResolver;
+            _webhookTriggerProvider = new WebhookTriggerBindingProvider();
+            _notificationUrl = context.GetWebhookHandler();
 
-            // Set up logging
-            _loggerFactory = context.Config.LoggerFactory ?? throw new ArgumentNullException("No logger present");
-
-            ConfigureServiceManager(context);
-
-            // Infer a blank Notification URL from the appsettings.
-            string appSettingBYOBTokenMap = _appSettings.Resolve(O365Constants.AppSettingBYOBTokenMap);
-            var subscriptionStore = _subscriptionStore ?? new WebhookSubscriptionStore(appSettingBYOBTokenMap);
-            var webhookTriggerProvider = new WebhookTriggerBindingProvider();
-            _webhookConfig = new GraphWebhookConfig(context.GetWebhookHandler(), subscriptionStore, webhookTriggerProvider);
-
-            var graphWebhookConverter = new GraphWebhookSubscriptionConverter(_serviceManager, _webhookConfig);
+            var graphWebhookConverter = new GraphWebhookSubscriptionConverter(_graphServiceClientManager, _options, _subscriptionStore);
 
             // Webhooks
             var webhookSubscriptionRule = context.AddBindingRule<GraphWebhookSubscriptionAttribute>();
             webhookSubscriptionRule.BindToInput<Subscription[]>(graphWebhookConverter);
-            webhookSubscriptionRule.BindToInput<OpenType[]>(typeof(GenericGraphWebhookSubscriptionConverter<>), _serviceManager, _webhookConfig);
+            webhookSubscriptionRule.BindToInput<OpenType[]>(typeof(GenericGraphWebhookSubscriptionConverter<>), _graphServiceClientManager, _options, _subscriptionStore);
             webhookSubscriptionRule.BindToInput<string[]>(graphWebhookConverter);
             webhookSubscriptionRule.BindToInput<JArray>(graphWebhookConverter);
             webhookSubscriptionRule.BindToCollector<string>(CreateCollector);
-
-            context.AddBindingRule<GraphWebhookTriggerAttribute>().BindToTrigger(webhookTriggerProvider);
+            context.AddBindingRule<GraphWebhookTriggerAttribute>().BindToTrigger(_webhookTriggerProvider);
 
             // OneDrive
+            var oneDriveService = new OneDriveService(_graphServiceClientManager);
             var OneDriveRule = context.AddBindingRule<OneDriveAttribute>();
-            var oneDriveConverter = new OneDriveConverter(_serviceManager);
+            var oneDriveConverter = new OneDriveConverter(oneDriveService);
 
             // OneDrive inputs
             OneDriveRule.BindToInput<byte[]>(oneDriveConverter);
             OneDriveRule.BindToInput<string>(oneDriveConverter);
             OneDriveRule.BindToInput<Stream>(oneDriveConverter);
             OneDriveRule.BindToInput<DriveItem>(oneDriveConverter);
-
-            OneDriveRule.BindToCollector<byte[]>(CreateCollector);
+            //OneDriveoutputs
+            OneDriveRule.BindToCollector<byte[]>(oneDriveConverter);
 
             // Excel
+            var excelService = new ExcelService(_graphServiceClientManager);
             var ExcelRule = context.AddBindingRule<ExcelAttribute>();
-            var excelConverter = new ExcelConverter(_serviceManager);
-
+            var excelConverter = new ExcelConverter(excelService);
             // Excel Outputs
             ExcelRule.AddConverter<object[][], string>(ExcelService.CreateRows);
             ExcelRule.AddConverter<JObject, string>(excelConverter);
-            ExcelRule.AddOpenConverter<OpenType, string>(typeof(ExcelGenericsConverter<>), _serviceManager); // used to append/update arrays of POCOs
+            ExcelRule.AddOpenConverter<OpenType, string>(typeof(ExcelGenericsConverter<>), excelService); // used to append/update arrays of POCOs
             ExcelRule.BindToCollector<string>(excelConverter);
-
             // Excel Inputs
             ExcelRule.BindToInput<string[][]>(excelConverter);
             ExcelRule.BindToInput<WorkbookTable>(excelConverter);
-            ExcelRule.BindToInput<OpenType>(typeof(ExcelGenericsConverter<>), _serviceManager);
+            ExcelRule.BindToInput<OpenType>(typeof(ExcelGenericsConverter<>), excelService);
 
             // Outlook
+            var outlookService = new OutlookService(_graphServiceClientManager);
             var OutlookRule = context.AddBindingRule<OutlookAttribute>();
-            var outlookConverter = new OutlookConverter();
-
+            var outlookConverter = new OutlookConverter(outlookService);
             // Outlook Outputs           
             OutlookRule.AddConverter<JObject, Message>(outlookConverter);
-            OutlookRule.AddOpenConverter<OpenType, Message>(typeof(OutlookGenericsConverter<>));
+            OutlookRule.AddOpenConverter<OpenType, Message>(typeof(OutlookGenericsConverter<>), outlookService);
             OutlookRule.AddConverter<string, Message>(outlookConverter);
-            OutlookRule.BindToCollector<Message>(CreateCollector);
-        }
-
-        private void ConfigureServiceManager(ExtensionConfigContext context)
-        {
-            if(_serviceManager == null)
-            {
-                // Set up token extension; handles auth (only providers supported by Easy Auth)
-                var tokenExtension = new AuthTokenExtensionConfig();
-                tokenExtension.InitializeAllExceptRules(context);
-                _serviceManager = new ServiceManager(tokenExtension);
-            }
+            OutlookRule.BindToCollector<Message>(outlookConverter);
         }
 
         private IAsyncCollector<string> CreateCollector(GraphWebhookSubscriptionAttribute attr)
         {
-            return new GraphWebhookSubscriptionAsyncCollector(_serviceManager, _loggerFactory, _webhookConfig, attr);
-        }
-
-        private IAsyncCollector<Message> CreateCollector(OutlookAttribute attr)
-        {
-            var service = Task.Run(() => _serviceManager.GetOutlookService(attr)).GetAwaiter().GetResult();
-            return new OutlookAsyncCollector(service);
-        }
-
-        private IAsyncCollector<byte[]> CreateCollector(OneDriveAttribute attr)
-        {
-            var service = Task.Run(() => _serviceManager.GetOneDriveService(attr)).GetAwaiter().GetResult();
-            return new OneDriveAsyncCollector(service, attr);
+            return new GraphWebhookSubscriptionAsyncCollector(_graphServiceClientManager, _options, _loggerFactory, _subscriptionStore, _notificationUrl, attr);
         }
 
         //TODO: https://github.com/Azure/azure-functions-microsoftgraph-extension/issues/48
@@ -157,8 +130,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <returns>Task with HttpResponseMessage for further processing</returns>
         async Task<HttpResponseMessage> IAsyncConverter<HttpRequestMessage, HttpResponseMessage>.ConvertAsync(HttpRequestMessage input, CancellationToken cancellationToken)
         {
-            var handler = new GraphWebhookSubscriptionHandler(_serviceManager, _webhookConfig, _loggerFactory);
-            var response = await handler.ProcessAsync(input);
+            var handler = new GraphWebhookSubscriptionHandler(_graphServiceClientManager, _subscriptionStore, _loggerFactory, _notificationUrl, _webhookTriggerProvider);
+            var response = await handler.ProcessAsync(input, cancellationToken);
             return response;
         }
     }

@@ -60,7 +60,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             // Upload all files
             foreach (var stream in _fileStreams)
             {
-                await _service.UploadOneDriveContentsAsync(_attribute, new MemoryStream(stream));
+                await _service.UploadOneDriveContentsAsync(_attribute, new MemoryStream(stream), cancellationToken);
             }
 
             this._fileStreams.Clear();

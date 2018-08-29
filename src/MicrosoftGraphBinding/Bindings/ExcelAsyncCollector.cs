@@ -18,7 +18,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// </summary>
     internal class ExcelAsyncCollector : IAsyncCollector<string>
     {
-        private readonly ExcelService _manager;
+        private readonly ExcelService _service;
         private readonly ExcelAttribute _attribute;
         private readonly List<JObject> _rows;
 
@@ -29,7 +29,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
         /// <param name="attribute">ExcelAttribute containing necessary info about workbook, etc.</param>
         public ExcelAsyncCollector(ExcelService manager, ExcelAttribute attribute)
         {
-            _manager = manager;
+            _service = manager;
             _attribute = attribute;
             _rows = new List<JObject>();
         }
@@ -97,12 +97,12 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                         row[O365Constants.ColsKey] = row.Children().Count();
                         if (row["column"] != null && row["value"] != null)
                         {
-                            await _manager.UpdateColumn(this._attribute, row);
+                            await _service.UpdateColumnAsync(this._attribute, row, cancellationToken);
                         }
                         else
                         {
                             // Update whole worksheet
-                            await _manager.UpdateWorksheet(this._attribute, row);
+                            await _service.UpdateWorksheetAsync(this._attribute, row, cancellationToken);
                         }
                     }
                 }
@@ -110,7 +110,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 {
                     // Update whole worksheet at once
                     JObject consolidatedRows = GetConsolidatedRows(_rows);
-                    await _manager.UpdateWorksheet(_attribute, consolidatedRows);
+                    await _service.UpdateWorksheetAsync(_attribute, consolidatedRows, cancellationToken);
                 }
             }
             else
@@ -118,7 +118,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
                 // DEFAULT: Append (rows to specific table)
                 foreach (var row in this._rows)
                 {
-                    await _manager.AddRow(this._attribute, row);
+                    await _service.AddRowAsync(this._attribute, row, cancellationToken);
                 }
             }
 

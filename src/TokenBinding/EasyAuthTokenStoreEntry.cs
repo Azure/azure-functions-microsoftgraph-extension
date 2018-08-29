@@ -10,7 +10,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     /// Names of the fields match the names of the fields returned by the /.auth/me endpoint
     /// </summary>
     [DataContract]
-    internal class EasyAuthTokenStoreEntry
+    public class EasyAuthTokenStoreEntry
     {
         [DataMember(Name = "access_token", EmitDefaultValue = false)]
         public string AccessToken { get; set; }

@@ -30,7 +30,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
 
-            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.StreamInput");
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>("OneDriveInputs.StreamInput", clientMock);
 
             Stream expected = GetContentAsStream();
             Assert.Equal(ReadStreamBytes(expected), ReadStreamBytes(stream));
@@ -43,7 +43,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockGetOneDriveContentStreamFromShareAsync(GetContentAsStream());
 
-            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.ShareStreamInput");
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>("OneDriveInputs.ShareStreamInput", clientMock);
 
             Stream expected = GetContentAsStream();
             Assert.Equal(ReadStreamBytes(expected), ReadStreamBytes(stream));
@@ -58,7 +58,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
 
-            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.StringInput");
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>("OneDriveInputs.StringInput", clientMock);
 
             string expected = GetContentAsString();
             Assert.Equal(expected, stringValue);
@@ -71,7 +71,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
 
-            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.BytesInput");
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>("OneDriveInputs.BytesInput", clientMock);
 
             byte[] expected = GetContentAsBytes();
             Assert.Equal(expected, bytes);
@@ -84,7 +84,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
 
-            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.StreamInput");
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>("OneDriveInputs.StreamInput", clientMock);
 
             Assert.Equal(false, stream.CanWrite);
             Assert.Equal(true, stream.CanRead);
@@ -99,7 +99,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var returnedDrive = new DriveItem();
             clientMock.MockGetOneDriveItemAsync(returnedDrive);
 
-            await CommonUtilities.ExecuteFunction<OneDriveInputs>(clientMock, "OneDriveInputs.DriveItemInput");
+            await CommonUtilities.ExecuteFunction<OneDriveInputs>("OneDriveInputs.DriveItemInput", clientMock);
 
             DriveItem expected = returnedDrive;
             Assert.Equal(expected, driveItem);
@@ -113,7 +113,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
             clientMock.MockUploadOneDriveItemAsync(null);
 
-            await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteStream");
+            await CommonUtilities.ExecuteFunction<OneDriveOutputs>("OneDriveOutputs.WriteStream", clientMock);
             stream.Close();
 
             clientMock.VerifyUploadOneDriveItemAsync(normalPath, stream => ReadStreamBytes(stream).SequenceEqual(ReadStreamBytes(GetContentAsStream())));
@@ -127,7 +127,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             clientMock.MockGetOneDriveContentStreamAsync(GetContentAsStream());
             clientMock.MockUploadOneDriveItemAsync(null);
 
-            await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteStream");
+            await CommonUtilities.ExecuteFunction<OneDriveOutputs>("OneDriveOutputs.WriteStream", clientMock);
 
             Assert.Equal(false, stream.CanRead);
             Assert.Equal(true, stream.CanWrite);
@@ -141,7 +141,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             var clientMock = new Mock<IGraphServiceClient>();
             clientMock.MockUploadOneDriveItemAsync(null);
 
-            await CommonUtilities.ExecuteFunction<OneDriveOutputs>(clientMock, "OneDriveOutputs.WriteBytes");
+            await CommonUtilities.ExecuteFunction<OneDriveOutputs>("OneDriveOutputs.WriteBytes", clientMock);
 
             clientMock.VerifyUploadOneDriveItemAsync(normalPath, stream => ReadStreamBytes(stream).SequenceEqual(ReadStreamBytes(GetContentAsStream())));
             ResetState();

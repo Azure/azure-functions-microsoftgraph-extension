@@ -5,6 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 {
     using System;
     using System.Linq.Expressions;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Graph;
     using Moq;
@@ -22,7 +23,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Workbook
                 .Tables[It.IsAny<string>()]
                 .Request()
-                .GetAsync()).Returns(Task.FromResult(returnValue));
+                .GetAsync(It.IsAny<CancellationToken>())).Returns(Task.FromResult(returnValue));
         }
 
         public static void MockGetTableWorkbookRangeAsync(this Mock<IGraphServiceClient> mock, WorkbookRange returnValue)
@@ -36,7 +37,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Tables[It.IsAny<string>()]
                 .Range()
                 .Request(null)
-                .GetAsync()).Returns(Task.FromResult(returnValue));
+                .GetAsync(It.IsAny<CancellationToken>())).Returns(Task.FromResult(returnValue));
         }
 
         public static void MockGetWorksheetWorkbookAsync(this Mock<IGraphServiceClient> mock, WorkbookRange returnValue)
@@ -50,7 +51,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Worksheets[It.IsAny<string>()]
                 .UsedRange()
                 .Request(null)
-                .GetAsync()).Returns(Task.FromResult(returnValue));
+                .GetAsync(It.IsAny<CancellationToken>())).Returns(Task.FromResult(returnValue));
         }
 
         public static void MockGetWorkSheetWorkbookInRangeAsync(this Mock<IGraphServiceClient> mock, WorkbookRange returnValue)
@@ -64,7 +65,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Worksheets[It.IsAny<string>()]
                 .Range(It.IsAny<string>())
                 .Request(null)
-                .GetAsync()).Returns(Task.FromResult(returnValue));
+                .GetAsync(It.IsAny<CancellationToken>())).Returns(Task.FromResult(returnValue));
         }
 
         public static void MockGetTableHeaderRowAsync(this Mock<IGraphServiceClient> mock, WorkbookRange returnValue)
@@ -78,7 +79,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Tables[It.IsAny<string>()]
                 .HeaderRowRange()
                 .Request(null)
-                .GetAsync()).Returns(Task.FromResult(returnValue));
+                .GetAsync(It.IsAny<CancellationToken>())).Returns(Task.FromResult(returnValue));
         }
 
         public static void MockPostTableRowAsyc(this Mock<IGraphServiceClient> mock, WorkbookTableRow returnValue)
@@ -93,7 +94,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Rows
                 .Add(null, It.IsAny<JToken>())
                 .Request(null)
-                .PostAsync()).Returns(Task.FromResult(returnValue));
+                .PostAsync(It.IsAny<CancellationToken>())).Returns(Task.FromResult(returnValue));
         }
 
         public static void VerifyPostTableRowAsync(this Mock<IGraphServiceClient> mock, string path, string tableName, Expression<Func<JToken,bool>> rowCondition)
@@ -109,7 +110,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Rows
                 .Add(null, It.IsAny<JToken>())
                 .Request(null)
-                .PostAsync());
+                .PostAsync(It.IsAny<CancellationToken>()));
 
             //Now verify row condition is true
             mock.Verify(client => client
@@ -134,7 +135,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Worksheets[It.IsAny<string>()]
                 .Range(It.IsAny<string>())
                 .Request(null)
-                .PatchAsync(It.IsAny<WorkbookRange>())).Returns(Task.FromResult(returnValue));
+                .PatchAsync(It.IsAny<WorkbookRange>(), It.IsAny<CancellationToken>())).Returns(Task.FromResult(returnValue));
         }
 
         public static void VerifyPatchWorksheetAsync(this Mock<IGraphServiceClient> mock, string path, string worksheetName, string range, Expression<Func<WorkbookRange,bool>> newWorkbookCondition)
@@ -148,7 +149,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Worksheets[worksheetName]
                 .Range(range)
                 .Request(null)
-                .PatchAsync(It.Is<WorkbookRange>(newWorkbookCondition)));
+                .PatchAsync(It.Is<WorkbookRange>(newWorkbookCondition), It.IsAny<CancellationToken>()));
         }
     }
 }

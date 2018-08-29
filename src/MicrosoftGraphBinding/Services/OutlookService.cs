@@ -1,26 +1,25 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-using System;
-using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Graph;
-using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
 {
     internal class OutlookService
     {
-        private IGraphServiceClient _client;
+        private GraphServiceClientManager _clientManager;
 
-        public OutlookService(IGraphServiceClient client)
+        public OutlookService(GraphServiceClientManager clientManager)
         {
-            _client = client;
+            _clientManager = clientManager;
         }
 
-        public async Task SendMessageAsync(Message msg)
+        public async Task SendMessageAsync(OutlookAttribute attr, Message msg, CancellationToken token)
         {
-            await _client.SendMessageAsync(msg);
+            IGraphServiceClient client = await _clientManager.GetMSGraphClientFromTokenAttributeAsync(attr, token);
+            await client.SendMessageAsync(msg, token);
         }
     }
 }

@@ -5,6 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
 {
     using System;
     using System.Linq.Expressions;
+    using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Graph;
     using Moq;
@@ -17,7 +18,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Me
                 .SendMail(It.IsAny<Message>(), true)
                 .Request(null)
-                .PostAsync()).Returns(Task.CompletedTask);
+                .PostAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         }
 
         public static void VerifySendMessage(this Mock<IGraphServiceClient> mock, Expression<Func<Message, bool>> messageCondition)
@@ -27,7 +28,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Me
                 .SendMail(It.IsAny<Message>(), true)
                 .Request(null)
-                .PostAsync());
+                .PostAsync(It.IsAny<CancellationToken>()));
 
             // Now verify that message condition holds for sent message
             mock.Verify(client => client
@@ -41,7 +42,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
                 .Me
                 .SendMail(It.IsAny<Message>(), true)
                 .Request(null)
-                .PostAsync(), Times.Never());
+                .PostAsync(It.IsAny<CancellationToken>()), Times.Never());
         }
     }
 }
