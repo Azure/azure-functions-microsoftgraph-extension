@@ -27,6 +27,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
     /// <summary>
     /// WebJobs SDK Extension for O365 Token binding.
     /// </summary>
+    [Description.Extension("MicrosoftGraph")]
     internal class MicrosoftGraphExtensionConfigProvider : IExtensionConfigProvider,
         IAsyncConverter<HttpRequestMessage, HttpResponseMessage>
     {

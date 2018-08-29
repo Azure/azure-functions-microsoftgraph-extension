@@ -89,7 +89,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             {
                 Resource = _attribute.SubscriptionResource,
                 ChangeType = ChangeTypeExtension.ConvertArrayToString(_attribute.ChangeTypes),
-                NotificationUrl = _notificationUrl.ToString(),
+                NotificationUrl = _notificationUrl.AbsoluteUri,
                 ExpirationDateTime = DateTime.UtcNow + _options.WebhookExpirationTimeSpan,
                 ClientState = clientState,
             };
