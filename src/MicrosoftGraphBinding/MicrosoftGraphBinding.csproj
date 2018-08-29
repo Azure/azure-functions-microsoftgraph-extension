@@ -6,8 +6,8 @@
     <RootNamespace>Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph</RootNamespace>
 
     <PackageId>Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph</PackageId>
-    <Description>This extension adds bindings for EventGrid</Description>
-    <Version>1.0.0-beta3$(VersionSuffix)</Version>
+    <Description>This extension adds bindings for Microsoft Graph</Description>
+    <Version>1.0.0-beta4$(VersionSuffix)</Version>
     <CommitHash Condition="$(CommitHash) == ''">N/A</CommitHash>
     <InformationalVersion>$(Version) Commit hash: $(CommitHash)</InformationalVersion>    
     
@@ -35,7 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0-beta7-11414" />
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0-beta8" />
     <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
