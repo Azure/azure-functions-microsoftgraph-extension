@@ -7,7 +7,12 @@
 
     <PackageId>Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph</PackageId>
     <Description>This extension adds bindings for Microsoft Graph</Description>
-    <Version>1.0.0-beta4$(VersionSuffix)</Version>
+    <MajorVersion>1</MajorVersion>
+    <MinorVersion>0</MinorVersion>
+    <PatchVersion>0</PatchVersion>
+    <BetaVersion>beta4</BetaVersion>
+    <AssemblyVersion>$(MajorVersion).0.0.0</AssemblyVersion>
+    <Version>$(MajorVersion).$(MinorVersion).$(PatchVersion)-$(BetaVersion)$(VersionSuffix)</Version>
     <CommitHash Condition="$(CommitHash) == ''">N/A</CommitHash>
     <InformationalVersion>$(Version) Commit hash: $(CommitHash)</InformationalVersion>    
     
@@ -18,7 +23,9 @@
     <PackageProjectUrl />
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/Azure/azure-functions-microsoftgraph-extension</RepositoryUrl>
-    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>    
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>../../sign.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <PropertyGroup>
