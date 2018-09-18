@@ -10,7 +10,7 @@
     <MajorVersion>1</MajorVersion>
     <MinorVersion>0</MinorVersion>
     <PatchVersion>0</PatchVersion>
-    <BetaVersion>beta5</BetaVersion>
+    <BetaVersion>beta6</BetaVersion>
     <AssemblyVersion>$(MajorVersion).0.0.0</AssemblyVersion>
     <Version>$(MajorVersion).$(MinorVersion).$(PatchVersion)-$(BetaVersion)$(VersionSuffix)</Version>
     <CommitHash Condition="$(CommitHash) == ''">N/A</CommitHash>
@@ -43,7 +43,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0-rc1" />
+    <PackageReference Include="Microsoft.Azure.WebJobs" Version="3.0.0" />
     <PackageReference Include="Microsoft.CodeCoverage" Version="1.0.3">
       <PrivateAssets>All</PrivateAssets>
     </PackageReference>
