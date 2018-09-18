@@ -27,7 +27,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 {
                     easyAuthClient = easyAuthClient ?? new Mock<IEasyAuthClient>().Object;
                     aadClient = aadClient ?? new Mock<IAadClient>().Object;
-                    appSettings = appSettings ?? new DefaultNameResolver();
+                    appSettings = appSettings ?? new Mock<INameResolver>().Object;
                     services.AddSingleton<ITypeLocator>(new FakeTypeLocator<T>());
                     services.AddSingleton<IEasyAuthClient>(easyAuthClient);
                     services.AddSingleton<IAadClient>(aadClient);

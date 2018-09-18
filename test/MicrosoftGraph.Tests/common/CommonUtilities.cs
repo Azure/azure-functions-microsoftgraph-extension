@@ -27,7 +27,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Tests
             IHost host = new HostBuilder()
                 .ConfigureServices(services =>
                 {
-                    appSettings = appSettings ?? new DefaultNameResolver();
+                    appSettings = appSettings ?? new Mock<INameResolver>().Object;
                     subscriptionStore = subscriptionStore ?? new MemorySubscriptionStore();
                     services.AddSingleton<ITypeLocator>(new FakeTypeLocator<T>());
                     services.AddSingleton<IAsyncConverter<TokenBaseAttribute, string>>(new MockTokenConverter());
