@@ -17,7 +17,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3F0C104A-CC6
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{E0C76B7E-D030-4B52-A288-3790ABC4A72C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GraphExtensionSamples", "samples\GraphExtensionSamples\GraphExtensionSamples.csproj", "{B0A7EE27-89D7-47BF-B132-2FC1FB9C5F14}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GraphExtensionSamples", "samples\GraphExtensionSamples\GraphExtensionSamples.csproj", "{B0A7EE27-89D7-47BF-B132-2FC1FB9C5F14}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D9B31118-B878-4314-9B7C-0E8D887648CC}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
