@@ -5,13 +5,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
 {
     using System;
     using System.Collections.Generic;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services;
     using Microsoft.Graph;
     using Newtonsoft.Json.Linq;
 
-    internal class OutlookConverter : IConverter<JObject, Message>, IConverter<string, Message>, IAsyncConverter<OutlookAttribute, IAsyncCollector<Message>>
+    internal class OutlookConverter : IConverter<JObject, Message>, IConverter<string, Message>, IConverter<byte[], Message>, IAsyncConverter<OutlookAttribute, IAsyncCollector<Message>>
     {
         private OutlookService _outlookService;
 
@@ -84,6 +85,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
         public Message Convert(string input)
         {
             return Convert(JObject.Parse(input));
+        }
+
+        public Message Convert(byte[] input)
+        {
+            return Convert(Encoding.UTF8.GetString(input));
         }
 
         private static T GetPropertyValueIgnoreCase<T>(JObject input, string key, bool throwException = true)
