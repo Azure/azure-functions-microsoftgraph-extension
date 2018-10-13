@@ -105,8 +105,9 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             var outlookConverter = new OutlookConverter(outlookService);
             // Outlook Outputs           
             OutlookRule.AddConverter<JObject, Message>(outlookConverter);
-            OutlookRule.AddOpenConverter<OpenType, Message>(typeof(OutlookGenericsConverter<>), outlookService);
+            OutlookRule.AddConverter<byte[], Message>(outlookConverter);
             OutlookRule.AddConverter<string, Message>(outlookConverter);
+            OutlookRule.AddOpenConverter<OpenType, Message>(typeof(OutlookGenericsConverter<>), outlookService);
             OutlookRule.BindToCollector<Message>(outlookConverter);
         }
 
