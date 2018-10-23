@@ -6,9 +6,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
     using System;
     using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
+    using System.IO;
+    using System.Linq;
     using System.Security.Claims;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Options;
+    using Microsoft.IdentityModel.Clients.ActiveDirectory;
     using Microsoft.IdentityModel.Tokens;
     using Moq;
     using Xunit;
@@ -101,6 +106,59 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             ResetState();
         }
 
+        [Fact]
+        public static async Task Integrated_FromClientCredentials_CredentialsValid_GetToken()
+        {
+            INameResolver nameResolver = GetValidSettingsForTests();
+            IAadClient aadClient = new AadClient(nameResolver);
+
+            var methodInfo = typeof(RealTokenFunctions).GetMethod("ClientCredentials");
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", appSettings: nameResolver, aadClient: aadClient);
+
+            var token = new JwtSecurityToken((string) outputContainer.Output);
+
+            Assert.True(token.ValidTo > DateTime.UtcNow);
+            Assert.True(token.Audiences.Contains(GraphResource));
+        }
+
+        [Fact]
+        public static async Task Integrated_FromClientCredentials_ClientSecretInvalid_GetToken()
+        {
+            INameResolver nameResolver = GetInvalidSettingsForTests(Constants.ClientSecretName);
+            IAadClient aadClient = new AadClient(nameResolver);
+
+            var methodInfo = typeof(RealTokenFunctions).GetMethod("ClientCredentials");
+
+            try
+            {
+                OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", appSettings: nameResolver, aadClient: aadClient);              
+            }
+            catch(Host.FunctionInvocationException e)
+            {
+                Assert.True(e.InnerException.InnerException is AdalServiceException);
+                Assert.True(e.InnerException.InnerException.Message.Contains("Invalid client secret"));
+            }
+        }
+
+        [Fact]
+        public static async Task Integrated_FromClientCredentials_ClientIDInvalid_GetToken()
+        {
+            INameResolver nameResolver = GetInvalidSettingsForTests(Constants.ClientIdName);
+            IAadClient aadClient = new AadClient(nameResolver);
+
+            var methodInfo = typeof(RealTokenFunctions).GetMethod("ClientCredentials");
+
+            try
+            {
+                OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", appSettings: nameResolver, aadClient: aadClient);
+            }
+            catch (Host.FunctionInvocationException e)
+            {
+                Assert.True(e.InnerException.InnerException is AdalServiceException);
+                Assert.True(e.InnerException.InnerException.Message.Contains("not found"));
+            }
+        }
+
         private static void ResetState()
         {
             finalTokenValue = null;
@@ -125,6 +183,28 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 AccessToken = accessToken,
                 ExpiresOn = expiration,
             };
+        }
+
+        private static INameResolver GetValidSettingsForTests()
+        {
+            IConfiguration config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json")
+                .Build();
+
+            return new DefaultNameResolver(config);
+        }
+
+        private static INameResolver GetInvalidSettingsForTests(string invalidSetting)
+        {
+            IConfiguration config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json")
+                .Build();
+
+            config[invalidSetting] = "invalid";
+
+            return new DefaultNameResolver(config);
         }
 
         private static Mock<IEasyAuthClient> GetEasyAuthClientMock(params EasyAuthTokenStoreEntry[] responsesInOrder)
@@ -182,6 +262,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 [Token(
                 Identity = TokenIdentityMode.ClientCredentials,
                 UserToken = SampleUserToken,
+                IdentityProvider = "AAD",
+                Resource = GraphResource)] string token, OutputContainer outputContainer)
+            {
+                outputContainer.Output = token;
+            }
+        }
+
+        public class RealTokenFunctions
+        {
+            public void ClientCredentials(
+                [Token(
+                Identity = TokenIdentityMode.ClientCredentials,
                 IdentityProvider = "AAD",
                 Resource = GraphResource)] string token, OutputContainer outputContainer)
             {

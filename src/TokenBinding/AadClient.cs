@@ -42,14 +42,24 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                     }
                     _clientCredentials = new ClientCredential(_options.ClientId, _options.ClientSecret);
                 }
-                return _clientCredentials;
 
+                return _clientCredentials;
             }
         }
 
         public AadClient(IOptions<TokenOptions> options)
         {
             _options = options.Value;
+        }
+
+        /// <summary>
+        /// Used for testing
+        /// </summary>
+        /// <param name="appSettings">INameResolver with app settings from local .json file</param>
+        public AadClient(INameResolver appSettings)
+        {
+            _options = new TokenOptions();
+            _options.SetAppSettings(appSettings);
         }
 
         /// <summary>
