@@ -35,6 +35,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
         private static string finalTokenValue;
 
+        private static string clientSecretFile = "client_secret.txt";
+
         [Fact]
         public static async Task FromId_TokenStillValid_GetStoredToken()
         {
@@ -192,6 +194,11 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 .AddJsonFile("appsettings.json")
                 .Build();
 
+            if (string.IsNullOrEmpty(config[Constants.ClientSecretName]))
+            {
+                config[Constants.ClientSecretName] = GetClientSecret();
+            }
+
             return new DefaultNameResolver(config);
         }
 
@@ -202,9 +209,25 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 .AddJsonFile("appsettings.json")
                 .Build();
 
+            if (!invalidSetting.Equals(Constants.ClientSecretName)
+                && string.IsNullOrEmpty(config[Constants.ClientSecretName]))
+            {
+                config[Constants.ClientSecretName] = GetClientSecret();
+            }
+
             config[invalidSetting] = "invalid";
 
             return new DefaultNameResolver(config);
+        }
+
+        private static string GetClientSecret()
+        {
+            if (File.Exists(clientSecretFile))
+            {
+                return File.ReadAllText(clientSecretFile);
+            }
+
+            return string.Empty;
         }
 
         private static Mock<IEasyAuthClient> GetEasyAuthClientMock(params EasyAuthTokenStoreEntry[] responsesInOrder)
