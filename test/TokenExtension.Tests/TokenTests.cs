@@ -81,7 +81,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         {
             var mockClient = GetAadClientMock();
 
-            var methodInfo = typeof(TokenFunctions).GetMethod("FromUserToken");
             OutputContainer outputContainer = await TestHelpers.RunTestAsync<TokenFunctions>("TokenFunctions.FromUserToken", aadClient: mockClient.Object);
 
             var expectedResult = AccessTokenFromUserToken;
@@ -114,7 +113,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             INameResolver nameResolver = GetValidSettingsForTests();
             IAadClient aadClient = new AadClient(nameResolver);
 
-            var methodInfo = typeof(RealTokenFunctions).GetMethod("ClientCredentials");
             OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", appSettings: nameResolver, aadClient: aadClient);
 
             var token = new JwtSecurityToken((string) outputContainer.Output);
@@ -128,8 +126,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         {
             INameResolver nameResolver = GetInvalidSettingsForTests(Constants.ClientSecretName);
             IAadClient aadClient = new AadClient(nameResolver);
-
-            var methodInfo = typeof(RealTokenFunctions).GetMethod("ClientCredentials");
 
             try
             {
@@ -147,8 +143,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         {
             INameResolver nameResolver = GetInvalidSettingsForTests(Constants.ClientIdName);
             IAadClient aadClient = new AadClient(nameResolver);
-
-            var methodInfo = typeof(RealTokenFunctions).GetMethod("ClientCredentials");
 
             try
             {
