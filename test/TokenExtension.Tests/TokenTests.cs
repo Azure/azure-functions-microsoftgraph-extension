@@ -33,9 +33,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
         private static string AccessTokenFromUserToken = "usertoken";
 
-        private static string finalTokenValue;
-
-        private static string clientSecretFile = "client_secret.txt";
+        private static string finalTokenValue;       
 
         [Fact]
         public static async Task FromId_TokenStillValid_GetStoredToken()
@@ -110,10 +108,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task Integrated_FromClientCredentials_CredentialsValid_GetToken()
         {
-            INameResolver nameResolver = GetValidSettingsForTests();
-            IAadClient aadClient = new AadClient(nameResolver);
+            var options = TestHelpers.GetValidSettingsForTests();
+            IAadClient aadClient = new AadClient(Options.Create(options));
 
-            OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", appSettings: nameResolver, aadClient: aadClient);
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", aadClient: aadClient);
 
             var token = new JwtSecurityToken((string) outputContainer.Output);
 
@@ -124,12 +122,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task Integrated_FromClientCredentials_ClientSecretInvalid_GetToken()
         {
-            INameResolver nameResolver = GetInvalidSettingsForTests(Constants.ClientSecretName);
-            IAadClient aadClient = new AadClient(nameResolver);
+            var options = TestHelpers.GetValidSettingsForTests();
+            options.ClientSecret = "invalid";
+
+            IAadClient aadClient = new AadClient(Options.Create(options));
 
             try
             {
-                OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", appSettings: nameResolver, aadClient: aadClient);              
+                OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", aadClient: aadClient);              
             }
             catch(Host.FunctionInvocationException e)
             {
@@ -141,12 +141,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         [Fact]
         public static async Task Integrated_FromClientCredentials_ClientIDInvalid_GetToken()
         {
-            INameResolver nameResolver = GetInvalidSettingsForTests(Constants.ClientIdName);
-            IAadClient aadClient = new AadClient(nameResolver);
+            var options = TestHelpers.GetValidSettingsForTests();
+            options.ClientId = "invalid";
+
+            IAadClient aadClient = new AadClient(Options.Create(options));
 
             try
             {
-                OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", appSettings: nameResolver, aadClient: aadClient);
+                OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", aadClient: aadClient);
             }
             catch (Host.FunctionInvocationException e)
             {
@@ -179,49 +181,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 AccessToken = accessToken,
                 ExpiresOn = expiration,
             };
-        }
-
-        private static INameResolver GetValidSettingsForTests()
-        {
-            IConfiguration config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
-                .Build();
-
-            if (string.IsNullOrEmpty(config[Constants.ClientSecretName]))
-            {
-                config[Constants.ClientSecretName] = GetClientSecret();
-            }
-
-            return new DefaultNameResolver(config);
-        }
-
-        private static INameResolver GetInvalidSettingsForTests(string invalidSetting)
-        {
-            IConfiguration config = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
-                .Build();
-
-            if (!invalidSetting.Equals(Constants.ClientSecretName)
-                && string.IsNullOrEmpty(config[Constants.ClientSecretName]))
-            {
-                config[Constants.ClientSecretName] = GetClientSecret();
-            }
-
-            config[invalidSetting] = "invalid";
-
-            return new DefaultNameResolver(config);
-        }
-
-        private static string GetClientSecret()
-        {
-            if (File.Exists(clientSecretFile))
-            {
-                return File.ReadAllText(clientSecretFile);
-            }
-
-            return string.Empty;
         }
 
         private static Mock<IEasyAuthClient> GetEasyAuthClientMock(params EasyAuthTokenStoreEntry[] responsesInOrder)

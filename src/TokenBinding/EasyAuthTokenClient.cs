@@ -24,8 +24,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// <summary>
         /// Initializes a new instance of the <see cref="EasyAuthTokenClient"/> class.
         /// </summary>
-        /// <param name="hostName">The hostname of the webapp </param>
-        /// <param name="signingKey">The website authorization signing key</param>
+        /// <param name="options">Application settings</param>
+        /// <param name="loggerFactory">Instance of loggery factory used to create log</param>
         public EasyAuthTokenClient(IOptions<TokenOptions> options, ILoggerFactory loggerFactory)
         {
             _log = loggerFactory.CreateLogger(AuthTokenExtensionConfigProvider.CreateBindingCategory("AuthToken"));

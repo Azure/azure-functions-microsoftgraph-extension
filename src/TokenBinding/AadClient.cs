@@ -53,16 +53,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         }
 
         /// <summary>
-        /// Used for testing
-        /// </summary>
-        /// <param name="appSettings">INameResolver with app settings from local .json file</param>
-        public AadClient(INameResolver appSettings)
-        {
-            _options = new TokenOptions();
-            _options.SetAppSettings(appSettings);
-        }
-
-        /// <summary>
         /// Use client credentials to retrieve auth token
         /// Typically used to retrieve a token for a different audience
         /// </summary>
