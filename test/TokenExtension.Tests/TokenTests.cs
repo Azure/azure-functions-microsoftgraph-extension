@@ -27,6 +27,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
         private const string GraphResource = "https://graph.microsoft.com";
 
+        private const string KeyVaultResource = "https://vault.azure.net";
+
         private const string SampleUserToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ";
 
         private static string AccessTokenFromClientCredentials = "clientcredentials";
@@ -157,6 +159,16 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             }
         }
 
+        [Fact]
+        public static async Task Integrated_FromAppIdentity_Valid_GetToken()
+        {
+            var options = TestHelpers.GetValidSettingsForTests();
+
+            IAadClient aadClient = new AadClient(Options.Create(options));
+
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.AppIdentity", aadClient: aadClient);
+        }
+
         private static void ResetState()
         {
             finalTokenValue = null;
@@ -252,6 +264,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 Identity = TokenIdentityMode.ClientCredentials,
                 IdentityProvider = "AAD",
                 Resource = GraphResource)] string token, OutputContainer outputContainer)
+            {
+                outputContainer.Output = token;
+            }
+
+            public void AppIdentity(
+                [Token(
+                Identity = TokenIdentityMode.AppIdentity,
+                IdentityProvider = "AAD",
+                Resource = KeyVaultResource)] string token, OutputContainer outputContainer)
             {
                 outputContainer.Output = token;
             }
