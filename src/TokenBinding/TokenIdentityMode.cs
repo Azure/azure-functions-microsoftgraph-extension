@@ -16,5 +16,7 @@ namespace Microsoft.Azure.WebJobs
         UserFromId,
         /// <summary> Obtains the access token for the client credentials found in the application settings. </summary>
         ClientCredentials,
+        /// <summary> Obtains an access token for the application using the application's MSI identity</summary>
+        AppIdentity
     }
 }

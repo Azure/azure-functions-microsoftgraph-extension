@@ -41,6 +41,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                     return await GetAuthTokenFromUserToken(attribute.UserToken, attribute.Resource);
                 case TokenIdentityMode.ClientCredentials:
                     return await _aadManager.GetTokenFromClientCredentials(attribute.Resource);
+                case TokenIdentityMode.AppIdentity:
+                    return await _aadManager.GetTokenFromAppIdentity(attribute.Resource);
             }
 
             throw new InvalidOperationException("Unable to authorize without Principal ID or ID Token.");
