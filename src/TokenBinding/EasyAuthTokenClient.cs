@@ -24,8 +24,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// <summary>
         /// Initializes a new instance of the <see cref="EasyAuthTokenClient"/> class.
         /// </summary>
-        /// <param name="hostName">The hostname of the webapp </param>
-        /// <param name="signingKey">The website authorization signing key</param>
+        /// <param name="options">Application settings</param>
+        /// <param name="loggerFactory">Instance of loggery factory used to create log</param>
         public EasyAuthTokenClient(IOptions<TokenOptions> options, ILoggerFactory loggerFactory)
         {
             _log = loggerFactory.CreateLogger(AuthTokenExtensionConfigProvider.CreateBindingCategory("AuthToken"));
@@ -34,8 +34,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
         public async Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(JwtSecurityToken jwt, TokenBaseAttribute attribute)
         {
+            string httpScheme = "https";
+
+            if (_options.HostName.StartsWith("localhost:") || _options.HostName.StartsWith("127.0.0.1:"))
+            {
+                httpScheme = "http";
+            }
+
             // Send the token to the local /.auth/me endpoint and return the JSON
-            string meUrl = $"https://{_options.HostName}/.auth/me?provider={attribute.IdentityProvider}";
+            string meUrl = $"{httpScheme}://{_options.HostName}/.auth/me?provider={attribute.IdentityProvider}";
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, meUrl))
             {
@@ -57,6 +64,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
         public async Task RefreshToken(JwtSecurityToken jwt, TokenBaseAttribute attribute)
         {
+            string httpScheme = "https";
+
+            if (_options.HostName.StartsWith("localhost:") || _options.HostName.StartsWith("127.0.0.1:"))
+            {
+                httpScheme = "http";
+            }
+
             if (string.IsNullOrEmpty(attribute.Resource))
             {
                 throw new ArgumentException("A resource is required to renew an access token.");
@@ -72,12 +86,13 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                 throw new ArgumentException("A provider is necessary to renew an access token.");
             }
 
-            string refreshUrl = $"https://{_options.HostName}/.auth/refresh?resource=" + WebUtility.UrlEncode(attribute.Resource);
+            string refreshUrl = $"{httpScheme}://{_options.HostName}/.auth/refresh?resource=" + WebUtility.UrlEncode(attribute.Resource);
 
             using (var refreshRequest = new HttpRequestMessage(HttpMethod.Get, refreshUrl))
             {
                 refreshRequest.Headers.Add("x-zumo-auth", jwt.RawData);
                 _log.LogTrace($"Refreshing ${attribute.IdentityProvider} access token for user ${attribute.UserId} at ${refreshUrl}");
+
                 using (HttpResponseMessage response = await _httpClient.SendAsync(refreshRequest))
                 {
                     _log.LogTrace($"Response from ${refreshUrl}: {response.StatusCode}");

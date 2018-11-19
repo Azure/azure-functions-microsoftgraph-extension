@@ -4,10 +4,17 @@ pull_requests:
 branches:
   only:
   - master
+  - dev
 image: Visual Studio 2017
+environment:
+  client_secret:
+    secure: 3kH-grSnEjNb!LwU!VM/Uw#6
 install:
 - ps: >-
-    $env:CommitHash = "$env:APPVEYOR_REPO_COMMIT"
+    $env:CommitHash = "$env:APPVEYOR_REPO_COMMIT"; 
+    iex ((New-Object Net.WebClient).DownloadString('https://raw.githubusercontent.com/appveyor/secure-file/master/install.ps1'))
+- cmd: appveyor-tools\secure-file -decrypt client_secret.txt.enc -secret %client_secret% -out test\TokenExtension.Tests\client_secret.txt
+- sh: ./appveyor-tools/secure-file -decrypt client_secret.txt.enc -secret $client_secret -out test\TokenExtension.Tests\client_secret.txt
 
 cache: '%USERPROFILE%\.nuget\packages'
 build_script:

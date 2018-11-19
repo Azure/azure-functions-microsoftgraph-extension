@@ -6,9 +6,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
     using System;
     using System.Collections.Generic;
     using System.IdentityModel.Tokens.Jwt;
+    using System.IO;
+    using System.Linq;
     using System.Security.Claims;
     using System.Threading.Tasks;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Options;
+    using Microsoft.IdentityModel.Clients.ActiveDirectory;
     using Microsoft.IdentityModel.Tokens;
     using Moq;
     using Xunit;
@@ -22,13 +27,15 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
 
         private const string GraphResource = "https://graph.microsoft.com";
 
+        private const string KeyVaultResource = "https://vault.azure.net";
+
         private const string SampleUserToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ";
 
         private static string AccessTokenFromClientCredentials = "clientcredentials";
 
         private static string AccessTokenFromUserToken = "usertoken";
 
-        private static string finalTokenValue;
+        private static string finalTokenValue;       
 
         [Fact]
         public static async Task FromId_TokenStillValid_GetStoredToken()
@@ -74,7 +81,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
         {
             var mockClient = GetAadClientMock();
 
-            var methodInfo = typeof(TokenFunctions).GetMethod("FromUserToken");
             OutputContainer outputContainer = await TestHelpers.RunTestAsync<TokenFunctions>("TokenFunctions.FromUserToken", aadClient: mockClient.Object);
 
             var expectedResult = AccessTokenFromUserToken;
@@ -99,6 +105,68 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
             Assert.Equal(expectedResult, outputContainer.Output);
             mockClient.Verify(client => client.GetTokenFromClientCredentials(GraphResource), Times.Exactly(1));
             ResetState();
+        }
+
+        [Fact]
+        public static async Task Integrated_FromClientCredentials_CredentialsValid_GetToken()
+        {
+            var options = TestHelpers.GetValidSettingsForTests();
+            IAadClient aadClient = new AadClient(Options.Create(options));
+
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", aadClient: aadClient);
+
+            var token = new JwtSecurityToken((string) outputContainer.Output);
+
+            Assert.True(token.ValidTo > DateTime.UtcNow);
+            Assert.True(token.Audiences.Contains(GraphResource));
+        }
+
+        [Fact]
+        public static async Task Integrated_FromClientCredentials_ClientSecretInvalid_GetToken()
+        {
+            var options = TestHelpers.GetValidSettingsForTests();
+            options.ClientSecret = "invalid";
+
+            IAadClient aadClient = new AadClient(Options.Create(options));
+
+            try
+            {
+                OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", aadClient: aadClient);              
+            }
+            catch(Host.FunctionInvocationException e)
+            {
+                Assert.True(e.InnerException.InnerException is AdalServiceException);
+                Assert.True(e.InnerException.InnerException.Message.Contains("Invalid client secret"));
+            }
+        }
+
+        [Fact]
+        public static async Task Integrated_FromClientCredentials_ClientIDInvalid_GetToken()
+        {
+            var options = TestHelpers.GetValidSettingsForTests();
+            options.ClientId = "invalid";
+
+            IAadClient aadClient = new AadClient(Options.Create(options));
+
+            try
+            {
+                OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.ClientCredentials", aadClient: aadClient);
+            }
+            catch (Host.FunctionInvocationException e)
+            {
+                Assert.True(e.InnerException.InnerException is AdalServiceException);
+                Assert.True(e.InnerException.InnerException.Message.Contains("not found"));
+            }
+        }
+
+        [Fact]
+        public static async Task Integrated_FromAppIdentity_Valid_GetToken()
+        {
+            var options = TestHelpers.GetValidSettingsForTests();
+
+            IAadClient aadClient = new AadClient(Options.Create(options));
+
+            OutputContainer outputContainer = await TestHelpers.RunTestAsync<RealTokenFunctions>("RealTokenFunctions.AppIdentity", aadClient: aadClient);
         }
 
         private static void ResetState()
@@ -184,6 +252,27 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
                 UserToken = SampleUserToken,
                 IdentityProvider = "AAD",
                 Resource = GraphResource)] string token, OutputContainer outputContainer)
+            {
+                outputContainer.Output = token;
+            }
+        }
+
+        public class RealTokenFunctions
+        {
+            public void ClientCredentials(
+                [Token(
+                Identity = TokenIdentityMode.ClientCredentials,
+                IdentityProvider = "AAD",
+                Resource = GraphResource)] string token, OutputContainer outputContainer)
+            {
+                outputContainer.Output = token;
+            }
+
+            public void AppIdentity(
+                [Token(
+                Identity = TokenIdentityMode.AppIdentity,
+                IdentityProvider = "AAD",
+                Resource = KeyVaultResource)] string token, OutputContainer outputContainer)
             {
                 outputContainer.Output = token;
             }
