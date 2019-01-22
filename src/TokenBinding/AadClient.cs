@@ -90,14 +90,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             return authResult.AccessToken;
         }
 
-        public async Task<string> GetTokenFromAppIdentity(string resource)
+        public async Task<string> GetTokenFromAppIdentity(string resource, string connectionString)
         {
             if (string.IsNullOrEmpty(resource))
             {
-                throw new ArgumentException("A resource is required to retrieve a token from the application's identity via MSI.");
+                throw new ArgumentException("A resource is required to retrieve a token via the application's managed identity.");
             }
 
-            var azureServiceTokenProvider = new AzureServiceTokenProvider();
+            var azureServiceTokenProvider = new AzureServiceTokenProvider(connectionString);
 
             var token = await azureServiceTokenProvider.GetAccessTokenAsync(resource);
 
