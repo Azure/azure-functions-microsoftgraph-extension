@@ -36,7 +36,7 @@ namespace Microsoft.Azure.WebJobs
         /// Gets or sets connection string to use for an application's managed identity. Optional
         /// </summary>
         [AutoResolve]
-        public string ConnectionString { get; set; }
+        public string IdentityConnectionString { get; set; }
 
         /// <summary>
         /// Gets or sets how to determine identity. Required.
