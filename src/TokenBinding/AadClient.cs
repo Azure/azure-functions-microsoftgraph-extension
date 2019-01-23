@@ -5,6 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using System;
     using System.Threading.Tasks;
+    using Microsoft.Azure.Services.AppAuthentication;
     using Microsoft.Extensions.Options;
     using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
@@ -42,8 +43,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                     }
                     _clientCredentials = new ClientCredential(_options.ClientId, _options.ClientSecret);
                 }
-                return _clientCredentials;
 
+                return _clientCredentials;
             }
         }
 
@@ -87,6 +88,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
             AuthenticationResult authResult = await AuthContext.AcquireTokenAsync(resource, ClientCredentials);
             return authResult.AccessToken;
+        }
+
+        public async Task<string> GetTokenFromAppIdentity(string resource, string connectionString)
+        {
+            if (string.IsNullOrEmpty(resource))
+            {
+                throw new ArgumentException("A resource is required to retrieve a token via the application's managed identity.");
+            }
+
+            var azureServiceTokenProvider = new AzureServiceTokenProvider(connectionString);
+
+            var token = await azureServiceTokenProvider.GetAccessTokenAsync(resource);
+
+            return token;
         }
     }
 }

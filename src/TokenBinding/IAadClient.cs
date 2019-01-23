@@ -10,5 +10,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         Task<string> GetTokenOnBehalfOfUserAsync(string userToken, string resource);
 
         Task<string> GetTokenFromClientCredentials(string resource);
+
+        Task<string> GetTokenFromAppIdentity(string resource, string connectionString);
     }
 }
