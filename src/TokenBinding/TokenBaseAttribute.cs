@@ -4,79 +4,78 @@
 namespace Microsoft.Azure.WebJobs
 {
     using System;
+    using System.Collections.Generic;
+    using System.Reflection;
     using Microsoft.Azure.WebJobs.Description;
+    using Microsoft.Azure.WebJobs.Host.Bindings;
+    using Microsoft.Azure.WebJobs.Host.Bindings.Path;
+    using Microsoft.AspNetCore.Http;
+    using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Extensions.Primitives;
+    using Microsoft.Net.Http.Headers;
 
     public abstract class TokenBaseAttribute : Attribute
     {
-        private TokenIdentityMode _identity;
+        [AutoResolve(ResolutionPolicyType = typeof(EasyAuthAccessTokenResolutionPolicy))]
+        public string EasyAuthAccessToken { get; set; } = "auto"; // Needs to be set to non-null value to be resolved
 
         /// <summary>
         /// Gets or sets a resource for a token exchange. Optional
         /// </summary>
-        public string Resource { get; set; }
-
-        /// <summary>
-        /// Gets or sets an identity provider for the token exchange. Optional
-        /// </summary>
-        public string IdentityProvider { get; set; }
-
-        /// <summary>
-        /// Gets or sets token to grab on-behalf-of. Required if Identity="userFromToken".
-        /// </summary>
-        [AutoResolve]
-        public string UserToken { get; set; }
-
-        /// <summary>
-        /// Gets or sets user id to grab token for. Required if Identity="userFromId".
-        /// </summary>
-        [AutoResolve]
-        public string UserId { get; set; }
+        public string AadResource { get; set; }
 
         /// <summary>
         /// Gets or sets how to determine identity. Required.
         /// </summary>
-        public TokenIdentityMode Identity
+        public TokenIdentityMode Identity { get; set; }
+
+        internal class EasyAuthAccessTokenResolutionPolicy : IResolutionPolicy
         {
-            get
+            public string TemplateBind(PropertyInfo propInfo, Attribute resolvedAttribute, BindingTemplate bindingTemplate, IReadOnlyDictionary<string, object> bindingData)
             {
-                return _identity;
+                var tokenAttribute = resolvedAttribute as TokenBaseAttribute;
+                if (tokenAttribute == null)
+                {
+                    throw new InvalidOperationException($"Can not use {nameof(EasyAuthAccessTokenResolutionPolicy)} as a resolution policy for an attribute that does not implement {nameof(TokenBaseAttribute)}");
+                }
+
+                if (tokenAttribute.Identity != TokenIdentityMode.UserFromRequest)
+                {
+                    // No other modes require this field
+                    return null;
+                }
+
+                if (!(bindingData.ContainsKey("$request") && bindingData["$request"] is HttpRequest))
+                {
+                    throw new InvalidOperationException($"Can not use {nameof(TokenIdentityMode.UserFromRequest)} mode of {resolvedAttribute.GetType()} with a non-HTTP triggered function.");
+                }
+
+                var request = (HttpRequest)bindingData["$request"];
+                return GetEasyAuthAccessToken(request);
             }
 
-            set
+            private string GetEasyAuthAccessToken(HttpRequest request)
             {
-                if (value == TokenIdentityMode.UserFromRequest)
+                string errorMessage = "Can not find an access token for the user. Verify that this endpoint is protected by Azure App Service Authentication/Authorization.";
+                if (request.Headers.TryGetValue(Constants.EasyAuthAadAccessTokenHeader, out StringValues accessTokenHeaderValue))
                 {
-                    _identity = TokenIdentityMode.UserFromToken;
-                    this.UserToken = "{headers.X-MS-TOKEN-AAD-ID-TOKEN}";
+                    return accessTokenHeaderValue.ToString();
                 }
-                else
+
+                if (request.Headers.TryGetValue(HeaderNames.Authorization, out StringValues authorizationHeaderValue))
                 {
-                    _identity = value;
+                    var bearerTokenString = authorizationHeaderValue.ToString();
+                    string[] bearerTokenComponents = bearerTokenString.Split(' ');
+                    if (bearerTokenComponents.Length != 2 && bearerTokenComponents[0] != "Bearer")
+                    {
+                        throw new InvalidOperationException(errorMessage);
+                    }
+                    return bearerTokenComponents[1];
                 }
+
+                throw new InvalidOperationException(errorMessage);
             }
         }
 
-        public void CheckValidity()
-        {
-            switch (this.Identity)
-            {
-                case TokenIdentityMode.ClientCredentials:
-                    break;
-                case TokenIdentityMode.UserFromId:
-                    if (string.IsNullOrWhiteSpace(this.UserId))
-                    {
-                        throw new FormatException("A token attribute with identity=userFromId requires a userId");
-                    }
-
-                    break;
-                case TokenIdentityMode.UserFromToken:
-                    if (string.IsNullOrWhiteSpace(this.UserToken))
-                    {
-                        throw new FormatException("A token attribute with identity=userFromToken requires a userToken");
-                    }
-
-                    break;
-            }
-        }
     }
 }

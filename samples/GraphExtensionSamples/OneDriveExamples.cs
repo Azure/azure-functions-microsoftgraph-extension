@@ -16,8 +16,7 @@ namespace GraphExtensionSamples
         //is an input or an output binding.
 
         public static void ReadOneDriveFileAsByteArray([OneDrive(
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid",
+            Identity = TokenIdentityMode.UserFromRequest,
             Path = "samplepath.txt")] byte[] array)
         {
             Console.Write(System.Text.Encoding.UTF8.GetString(array, 0, array.Length));
@@ -26,8 +25,7 @@ namespace GraphExtensionSamples
 
         //NOTE: These strings read the file assuming UTF-8 encoding.
         public static void ReadOneDriveFileAsString([OneDrive(
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid",
+            Identity = TokenIdentityMode.UserFromRequest,
             Path = "samplepath.txt")] string fileText)
         {
             Console.Write(fileText);
@@ -35,16 +33,14 @@ namespace GraphExtensionSamples
 
         //The binding also supports paths in the form of share links
         public static void ReadOneDriveFileAsByteArrayFromShareLink([OneDrive(
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid",
+            Identity = TokenIdentityMode.UserFromRequest,
             Path = "https://microsoft-my.sharepoint.com/:t:/p/comcmaho/randomstringhere")] byte[] array)
         {
             Console.Write(System.Text.Encoding.UTF8.GetString(array, 0, array.Length));
         }
 
         public static void GetDriveItem([OneDrive(
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid",
+            Identity = TokenIdentityMode.UserFromRequest,
             Path = "samplepath.txt")] DriveItem array)
         {
             //See https://github.com/microsoftgraph/msgraph-sdk-dotnet/blob/81c50e72166152f9f84dc38b2516379b7a536300/src/Microsoft.Graph/Models/Generated/DriveItem.cs
@@ -52,8 +48,7 @@ namespace GraphExtensionSamples
         }
 
         public static void GetOneDriveStream([OneDrive(
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid",
+            Identity = TokenIdentityMode.UserFromRequest,
             Path = "samplepath.txt")] Stream stream)
         {
             byte[] buffer = new byte[256];
@@ -61,8 +56,7 @@ namespace GraphExtensionSamples
         }
 
         public static void GetOneDriveStreamWithWriteAccess([OneDrive(FileAccess.Write, 
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid",
+            Identity = TokenIdentityMode.UserFromRequest,
             Path = "samplepath.txt")] Stream stream)
         {
             string sampleText = "sampleText";

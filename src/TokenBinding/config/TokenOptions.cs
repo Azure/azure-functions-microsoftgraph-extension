@@ -1,10 +1,16 @@
 ﻿// Copyright (c) .NET Foundation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using System;
+
 namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     public class TokenOptions
     {
+        private AuthenticationContext _authContext;
+        private ClientCredential _clientCredentials;
+
         /// <summary>
         /// The website hostname
         /// </summary>
@@ -39,29 +45,5 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         /// The default tenant to grab the token for
         /// </summary>
         public string DefaultTenantId { get; set; } = "common";
-
-        public virtual void SetAppSettings(INameResolver appSettings)
-        {
-            if (HostName == null)
-            {
-                HostName = appSettings.Resolve(Constants.WebsiteHostname);
-            }
-            if (ClientId == null)
-            {
-                ClientId = appSettings.Resolve(Constants.ClientIdName);
-            }
-            if (ClientSecret == null)
-            {
-                ClientSecret = appSettings.Resolve(Constants.ClientSecretName);
-            }
-            if (TenantUrl == null)
-            {
-                TenantUrl = appSettings.Resolve(Constants.WebsiteAuthOpenIdIssuer);
-            }
-            if (SigningKey == null)
-            {
-                SigningKey = appSettings.Resolve(Constants.WebsiteAuthSigningKey);
-            }
-        }
     }
 }

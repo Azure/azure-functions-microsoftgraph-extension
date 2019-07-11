@@ -17,13 +17,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     internal class AuthTokenExtensionConfigProvider : IExtensionConfigProvider
     {
         private TokenConverter _converter;
-        private TokenOptions _options;
 
-        public AuthTokenExtensionConfigProvider(IOptions<TokenOptions> options, IAadClient aadClient, IEasyAuthClient easyAuthClient, INameResolver appSettings)
+        public AuthTokenExtensionConfigProvider(IOptions<TokenOptions> options, IAadServiceFactory aadServiceFactory, IEasyAuthClient easyAuthClient)
         {
-            _options = options.Value;
-            _options.SetAppSettings(appSettings);
-            _converter = new TokenConverter(options, easyAuthClient, aadClient);
+            _converter = new TokenConverter(options.Value, easyAuthClient, aadServiceFactory);
         }
 
         //TODO: https://github.com/Azure/azure-functions-microsoftgraph-extension/issues/48

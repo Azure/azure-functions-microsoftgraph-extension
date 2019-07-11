@@ -17,10 +17,17 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
 
             builder.AddExtension<AuthTokenExtensionConfigProvider>()
-                .BindOptions<TokenOptions>()
+                .ConfigureOptions<TokenOptions>((rootConfig, extensionPath, options) =>
+                {
+                    options.HostName = rootConfig[Constants.WebsiteHostname];
+                    options.ClientId = rootConfig[Constants.ClientIdName];
+                    options.ClientSecret = rootConfig[Constants.ClientSecretName];
+                    options.TenantUrl = rootConfig[Constants.WebsiteAuthOpenIdIssuer];
+                    options.SigningKey = rootConfig[Constants.WebsiteAuthSigningKey];
+                })
                 .Services
                 .AddSingleton<IEasyAuthClient, EasyAuthTokenClient>()
-                .AddSingleton<IAadClient, AadClient>();
+                .AddSingleton<IAadServiceFactory, AdalAadServiceFactory>();
             return builder;
         }
 
@@ -38,7 +45,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         public static IServiceCollection AddAuthTokenServices(this IServiceCollection services)
         {
             services.AddSingleton<IEasyAuthClient, EasyAuthTokenClient>()
-                .AddSingleton<IAadClient, AadClient>();
+                .AddSingleton<IAadService, AdalAadService>();
             return services;
         }
     }

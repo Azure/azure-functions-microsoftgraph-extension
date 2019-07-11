@@ -58,15 +58,14 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config.Converters
 
             protected async Task<SubscriptionEntry[]> GetSubscriptionsFromAttributeAsync(GraphWebhookSubscriptionAttribute attribute, CancellationToken cancellationToken)
             {
+                // TODO: Fix this!
                 IEnumerable<SubscriptionEntry> subscriptionEntries = await _subscriptionStore.GetAllSubscriptionsAsync();
                 if (TokenIdentityMode.UserFromRequest.ToString().Equals(attribute.Filter, StringComparison.OrdinalIgnoreCase))
                 {
                     var dummyTokenAttribute = new TokenAttribute()
                     {
-                        Resource = _options.GraphBaseUrl,
-                        Identity = TokenIdentityMode.UserFromToken,
-                        UserToken = attribute.UserToken,
-                        IdentityProvider = "AAD",
+                        AadResource = _options.GraphBaseUrl,
+                        Identity = TokenIdentityMode.UserFromRequest
                     };
                     var graph = await _clientManager.GetMSGraphClientFromTokenAttributeAsync(dummyTokenAttribute, cancellationToken);
                     var user = await graph.Me.Request().GetAsync();

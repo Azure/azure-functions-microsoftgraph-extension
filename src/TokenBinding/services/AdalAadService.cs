@@ -5,51 +5,20 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.Options;
     using Microsoft.IdentityModel.Clients.ActiveDirectory;
 
     /// <summary>
     /// Helper class for calling onto ADAL
     /// </summary>
-    internal class AadClient : IAadClient
+    internal class AdalAadService : IAadService
     {
         private AuthenticationContext _authContext;
-        private ClientCredential _clientCredentials;
-        private TokenOptions _options;
+        private ClientCredential _clientCredential;
 
-        private AuthenticationContext AuthContext {
-            get
-            {
-                if (_authContext == null)
-                {
-                    // NOTE: We had to turn off authority validation here, otherwise we would
-                    // get the error "AADSTS50049: Unknown or invalid instance" for some tenants.
-                    _authContext = new AuthenticationContext(_options.TenantUrl, false);
-                }
-                return _authContext;
-            }
-        }
-
-        private ClientCredential ClientCredentials
+        public AdalAadService(AuthenticationContext authContext, ClientCredential clientCredential)
         {
-            get
-            {
-                if (_clientCredentials == null)
-                {
-                    if (_options.ClientId == null || _options.ClientSecret == null)
-                    {
-                        throw new InvalidOperationException($"The Application Settings {Constants.ClientIdName} and {Constants.ClientSecretName} must be set to perform this operation.");
-                    }
-                    _clientCredentials = new ClientCredential(_options.ClientId, _options.ClientSecret);
-                }
-                return _clientCredentials;
-
-            }
-        }
-
-        public AadClient(IOptions<TokenOptions> options)
-        {
-            _options = options.Value;
+            _authContext = authContext;
+            _clientCredential = clientCredential;
         }
 
         /// <summary>
@@ -74,7 +43,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             }
 
             UserAssertion userAssertion = new UserAssertion(userToken);
-            AuthenticationResult ar = await AuthContext.AcquireTokenAsync(resource, ClientCredentials, userAssertion);
+            AuthenticationResult ar = await _authContext.AcquireTokenAsync(resource, _clientCredential, userAssertion);
             return ar.AccessToken;
         }
 
@@ -85,7 +54,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
                 throw new ArgumentException("A resource is required to retrieve a token from client credentials.");
             }
 
-            AuthenticationResult authResult = await AuthContext.AcquireTokenAsync(resource, ClientCredentials);
+            AuthenticationResult authResult = await _authContext.AcquireTokenAsync(resource, _clientCredential);
             return authResult.AccessToken;
         }
     }

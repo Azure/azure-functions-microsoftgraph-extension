@@ -13,7 +13,7 @@ namespace Microsoft.Azure.WebJobs
         /// </summary>
         public GraphTokenBaseAttribute()
         {
-            this.Resource = O365Constants.GraphBaseUrl;
+            this.AadResource = O365Constants.GraphBaseUrl;
         }
     }
 }

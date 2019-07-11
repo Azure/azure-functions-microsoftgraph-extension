@@ -32,8 +32,7 @@ namespace GraphExtensionSamples
                     new GraphWebhookSubscriptionAttribute()
                     {
                         Action = GraphWebhookSubscriptionAction.Refresh,
-                        Identity = TokenIdentityMode.UserFromId,
-                        UserId = subscription.UserId
+                        Identity = TokenIdentityMode.UserFromRequest
                     }
                 );
                 {
@@ -70,8 +69,7 @@ namespace GraphExtensionSamples
         }
 
         public static void SubscribeToInbox([GraphWebhookSubscription(
-            UserId = "%UserId%",
-            Identity = TokenIdentityMode.UserFromId,
+            Identity = TokenIdentityMode.UserFromRequest,
             SubscriptionResource = "me/mailFolders('Inbox')/messages",
             ChangeTypes = new GraphWebhookChangeType[] {GraphWebhookChangeType.Created, GraphWebhookChangeType.Updated },
             Action = GraphWebhookSubscriptionAction.Create)] out string clientState)

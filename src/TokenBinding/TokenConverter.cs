@@ -8,39 +8,34 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Microsoft.Extensions.Options;
 
     public class TokenConverter : IAsyncConverter<TokenAttribute, string>, IAsyncConverter<TokenBaseAttribute, string>
     {
-        private IOptions<TokenOptions> _options;
-        private IAadClient _aadManager;
+        private TokenOptions _options;
         private IEasyAuthClient _easyAuthClient;
+
+        // Lazily initialize as we don't want to force validation of parameters unless we are actually using them.
+        private Lazy<IAadService> _aadService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Converters"/> class.
         /// </summary>
         /// <param name="parent">TokenExtensionConfig containing necessary context & methods</param>
-        public TokenConverter(IOptions<TokenOptions> options, IEasyAuthClient easyAuthClient, IAadClient aadClient)
+        public TokenConverter(TokenOptions options, IEasyAuthClient easyAuthClient, IAadServiceFactory aadServiceFactory)
         {
             _options = options;
             _easyAuthClient = easyAuthClient;
-            _aadManager = aadClient;
+            _aadService = new Lazy<IAadService>(() => aadServiceFactory.GetAadClient(_options.TenantUrl, _options.ClientId, _options.ClientSecret));
         }
 
         public async Task<string> ConvertAsync(TokenBaseAttribute attribute, CancellationToken cancellationToken)
         {
-            attribute.CheckValidity();
             switch (attribute.Identity)
             {
-                case TokenIdentityMode.UserFromId:
-                    // If the attribute has no identity provider, assume AAD
-                    attribute.IdentityProvider = attribute.IdentityProvider ?? "AAD";
-                    var easyAuthTokenManager = new EasyAuthTokenManager(_easyAuthClient, _options);
-                    return await easyAuthTokenManager.GetEasyAuthAccessTokenAsync(attribute);
-                case TokenIdentityMode.UserFromToken:
-                    return await GetAuthTokenFromUserToken(attribute.UserToken, attribute.Resource);
+                case TokenIdentityMode.UserFromRequest:
+                    return await GetResourceTokenFromAccessToken(attribute.EasyAuthAccessToken, attribute.AadResource);
                 case TokenIdentityMode.ClientCredentials:
-                    return await _aadManager.GetTokenFromClientCredentials(attribute.Resource);
+                    return await _aadService.Value.GetTokenFromClientCredentials(attribute.AadResource);
             }
 
             throw new InvalidOperationException("Unable to authorize without Principal ID or ID Token.");
@@ -51,7 +46,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             return await ConvertAsync(attribute as TokenBaseAttribute, cancellationToken);
         }
 
-        private async Task<string> GetAuthTokenFromUserToken(string userToken, string resource)
+        private async Task<string> GetResourceTokenFromAccessToken(string userToken, string resource)
         {
             if (string.IsNullOrWhiteSpace(resource))
             {
@@ -62,7 +57,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
             var currentAudience = GetAudience(userToken);
             if (currentAudience != resource)
             {
-                string token = await _aadManager.GetTokenOnBehalfOfUserAsync(
+                string token = await _aadService.Value.GetTokenOnBehalfOfUserAsync(
                     userToken,
                     resource);
                 return token;

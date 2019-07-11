@@ -35,7 +35,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         public async Task<EasyAuthTokenStoreEntry> GetTokenStoreEntry(JwtSecurityToken jwt, TokenBaseAttribute attribute)
         {
             // Send the token to the local /.auth/me endpoint and return the JSON
-            string meUrl = $"https://{_options.HostName}/.auth/me?provider={attribute.IdentityProvider}";
+            string meUrl = $"https://{_options.HostName}/.auth/me?provider=aad";
 
             using (var request = new HttpRequestMessage(HttpMethod.Get, meUrl))
             {
@@ -57,34 +57,25 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
         public async Task RefreshToken(JwtSecurityToken jwt, TokenBaseAttribute attribute)
         {
-            if (string.IsNullOrEmpty(attribute.Resource))
+            if (string.IsNullOrEmpty(attribute.AadResource))
             {
                 throw new ArgumentException("A resource is required to renew an access token.");
             }
 
-            if (string.IsNullOrEmpty(attribute.UserId))
-            {
-                throw new ArgumentException("A userId is required to renew an access token.");
-            }
 
-            if (string.IsNullOrEmpty(attribute.IdentityProvider))
-            {
-                throw new ArgumentException("A provider is necessary to renew an access token.");
-            }
-
-            string refreshUrl = $"https://{_options.HostName}/.auth/refresh?resource=" + WebUtility.UrlEncode(attribute.Resource);
+            string refreshUrl = $"https://{_options.HostName}/.auth/refresh?resource=" + WebUtility.UrlEncode(attribute.AadResource);
 
             using (var refreshRequest = new HttpRequestMessage(HttpMethod.Get, refreshUrl))
             {
                 refreshRequest.Headers.Add("x-zumo-auth", jwt.RawData);
-                _log.LogTrace($"Refreshing ${attribute.IdentityProvider} access token for user ${attribute.UserId} at ${refreshUrl}");
+                _log.LogTrace($"Refreshing aad access token at ${refreshUrl}");
                 using (HttpResponseMessage response = await _httpClient.SendAsync(refreshRequest))
                 {
                     _log.LogTrace($"Response from ${refreshUrl}: {response.StatusCode}");
                     if (!response.IsSuccessStatusCode)
                     {
                         string errorResponse = await response.Content.ReadAsStringAsync();
-                        throw new InvalidOperationException($"Failed to refresh {attribute.UserId} {attribute.IdentityProvider} error={response.StatusCode} {errorResponse}");
+                        throw new InvalidOperationException($"Failed to refresh aad access");
                     }
                 }
             }

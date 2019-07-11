@@ -6,32 +6,50 @@ namespace Microsoft.Azure.WebJobs.Extensions.Token.Tests
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Microsoft.AspNetCore.Http;
     using Microsoft.Azure.WebJobs.Extensions.AuthTokens;
+    using Microsoft.Extensions.Configuration.Memory;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Moq;
 
     internal class TestHelpers
     {
-        public static async Task<OutputContainer> RunTestAsync<T>(string methodName, INameResolver appSettings = null, IEasyAuthClient easyAuthClient = null, IAadClient aadClient = null,  object argument = null)
+        public static async Task<OutputContainer> RunTestAsync<T>(string methodName, IDictionary<string, string> options = null, IEasyAuthClient easyAuthClient = null, IAadServiceFactory aadServiceFactory = null, HttpRequest request = null)
         {
             var outputContainer = new OutputContainer();
             var arguments = new Dictionary<string, object>()
             {
                 { "outputContainer", outputContainer },
-                { "triggerData", argument }
             };
 
+            if (request != null)
+            {
+                arguments.Add("$request", request);
+            }
+
             IHost host = new HostBuilder()
+                .ConfigureAppConfiguration(c=> {
+
+                    if (options != null)
+                    {
+                        c.Sources.Clear();
+
+                        var source = new MemoryConfigurationSource
+                        {
+                            InitialData = options
+                        };
+
+                        c.Add(source);
+                    }
+                })
                 .ConfigureServices(services =>
                 {
                     easyAuthClient = easyAuthClient ?? new Mock<IEasyAuthClient>().Object;
-                    aadClient = aadClient ?? new Mock<IAadClient>().Object;
-                    appSettings = appSettings ?? new Mock<INameResolver>().Object;
+                    aadServiceFactory = aadServiceFactory ?? new Mock<IAadServiceFactory>().Object;
                     services.AddSingleton<ITypeLocator>(new FakeTypeLocator<T>());
                     services.AddSingleton<IEasyAuthClient>(easyAuthClient);
-                    services.AddSingleton<IAadClient>(aadClient);
-                    services.AddSingleton<INameResolver>(appSettings);
+                    services.AddSingleton<IAadServiceFactory>(aadServiceFactory);
                 })
                 .ConfigureWebJobs(builder =>
                 {

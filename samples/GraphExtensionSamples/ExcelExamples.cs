@@ -14,8 +14,7 @@ namespace GraphExtensionSamples
         public static void AppendRowsToExcelSpreadsheetWithJaggedArray([Excel(
             Path = "TestSheet.xlsx",
             WorksheetName = "Sheet1",
-            UserId = "%UserId%",
-            Identity = TokenIdentityMode.UserFromId)] out object[][] output)
+            Identity = TokenIdentityMode.UserFromRequest)] out object[][] output)
         {
             output = new object[2][];
             output[0] = new object[]
@@ -33,8 +32,7 @@ namespace GraphExtensionSamples
             Path = "TestSheet.xlsx",
             WorksheetName = "Sheet1",
             TableName = "Parts",
-            UserId = "%UserId%",
-            Identity = TokenIdentityMode.UserFromId)] out PartsTableRow output)
+            Identity = TokenIdentityMode.UserFromRequest)] out PartsTableRow output)
         {
             output = new PartsTableRow
             {
@@ -52,9 +50,8 @@ namespace GraphExtensionSamples
             Path = "TestSheet.xlsx",
             WorksheetName = "Sheet1",
             TableName = "Parts",
-            UserId = "%UserId%",
             UpdateType = "Update",
-            Identity = TokenIdentityMode.UserFromId)] out PartsTableRow[] output)
+            Identity = TokenIdentityMode.UserFromRequest)] out PartsTableRow[] output)
         {
             output = new PartsTableRow[2];
             output[0] = (new PartsTableRow
@@ -75,8 +72,7 @@ namespace GraphExtensionSamples
         public static void GetEntireExcelWorksheetAsJaggedStringArray([Excel(
             Path = "TestSheet.xlsx",
             WorksheetName = "Sheet1",
-            UserId = "%UserId%",
-            Identity = TokenIdentityMode.UserFromId)] string[][] rows)
+            Identity = TokenIdentityMode.UserFromRequest)] string[][] rows)
         {
             //Perform any operations on the string[][], where each string[] is 
             //a row in the worksheet.
@@ -86,8 +82,7 @@ namespace GraphExtensionSamples
             Path = "TestSheet.xlsx",
             WorksheetName = "Sheet1",
             TableName = "sampletable",
-            UserId = "%UserId%",
-            Identity = TokenIdentityMode.UserFromId)] WorkbookTable table)
+            Identity = TokenIdentityMode.UserFromRequest)] WorkbookTable table)
         {
             //See https://github.com/microsoftgraph/msgraph-sdk-dotnet/blob/81c50e72166152f9f84dc38b2516379b7a536300/src/Microsoft.Graph/Models/Generated/WorkbookTable.cs
             //for usage
@@ -97,8 +92,7 @@ namespace GraphExtensionSamples
             Path = "TestSheet.xlsx",
             WorksheetName = "Sheet1",
             TableName = "sampletable",
-            UserId = "%UserId%",
-            Identity = TokenIdentityMode.UserFromId)] PartsTableRow table)
+            Identity = TokenIdentityMode.UserFromRequest)] PartsTableRow table)
         {
             //Note that each POCO object represents one row, and the values correspond to
             //the column titles that match the POCO's property names.

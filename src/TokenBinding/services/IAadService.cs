@@ -5,7 +5,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 {
     using System.Threading.Tasks;
 
-    public interface IAadClient
+    public interface IAadService
     {
         Task<string> GetTokenOnBehalfOfUserAsync(string userToken, string resource);
 

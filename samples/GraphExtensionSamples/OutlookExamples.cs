@@ -12,8 +12,7 @@ namespace GraphExtensionSamples
         //Sending messages
 
         public static void SendMailFromMessageObject([Outlook(
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid")] out Message message)
+            Identity = TokenIdentityMode.UserFromRequest)] out Message message)
         {
             message = new Message();
             //See https://github.com/microsoftgraph/msgraph-sdk-dotnet/blob/dev/src/Microsoft.Graph/Models/Generated/Message.cs
@@ -21,8 +20,7 @@ namespace GraphExtensionSamples
         }
 
         public static void SendMailFromJObject([Outlook(
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid")] out JObject message)
+            Identity = TokenIdentityMode.UserFromRequest)] out JObject message)
         {
             message = new JObject();
             //See https://developer.microsoft.com/en-us/graph/docs/api-reference/v1.0/resources/message for a json
@@ -31,8 +29,7 @@ namespace GraphExtensionSamples
         }
 
         public static void SendMailFromPoco([Outlook(
-            Identity = TokenIdentityMode.UserFromId,
-            UserId = "sampleuserid")] out MessagePoco message)
+            Identity = TokenIdentityMode.UserFromRequest)] out MessagePoco message)
         {
             message = new MessagePoco();
             //See https://developer.microsoft.com/en-us/graph/docs/api-reference/v1.0/resources/message for a json

@@ -14,5 +14,7 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         public const string WebsiteAuthSigningKey = "WEBSITE_AUTH_SIGNING_KEY";
 
         public const string WebsiteAuthOpenIdIssuer = "WEBSITE_AUTH_OPENID_ISSUER";
+
+        public const string EasyAuthAadAccessTokenHeader = "X-MS-TOKEN-AAD-ID-TOKEN";
     }
 }

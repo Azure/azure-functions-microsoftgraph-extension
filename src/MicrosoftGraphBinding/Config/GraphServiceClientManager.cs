@@ -93,9 +93,8 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Services
         {
             var attr = new TokenAttribute
             {
-                UserId = userId,
-                Resource = _options.GraphBaseUrl,
-                Identity = TokenIdentityMode.UserFromId,
+                AadResource = _options.GraphBaseUrl,
+                Identity = TokenIdentityMode.UserFromRequest,
             };
 
             return await this.GetMSGraphClientFromTokenAttributeAsync(attr, token);

@@ -21,16 +21,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         private const int JwtTokenDurationInMinutes = 15;
 
         private readonly TokenOptions _options;
-        private readonly IEasyAuthClient _client;
+        private readonly IEasyAuthClient _easyAuthClient;
+        private readonly IAadService _aadClient;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EasyAuthTokenManager"/> class.
         /// </summary>
         /// <param name="hostName">The hostname of the keystore. </param>
         /// <param name="signingKey">The website authorization signing key</param>
-        public EasyAuthTokenManager(IEasyAuthClient client, IOptions<TokenOptions> options)
+        public EasyAuthTokenManager(IEasyAuthClient easyAuthClient, IAadService aadClient, IOptions<TokenOptions> options)
         {
-            _client = client;
+            _easyAuthClient = easyAuthClient;
+            _aadClient = aadClient;
             _options = options.Value;
         }
 
@@ -42,18 +44,18 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
         public async Task<string> GetEasyAuthAccessTokenAsync(TokenBaseAttribute attribute)
         {
             var jwt = CreateTokenForEasyAuthAccess(attribute);
-            EasyAuthTokenStoreEntry tokenStoreEntry = await _client.GetTokenStoreEntry(jwt, attribute);
+            EasyAuthTokenStoreEntry tokenStoreEntry = await _easyAuthClient.GetTokenStoreEntry(jwt, attribute);
 
             bool isTokenValid = IsTokenValid(tokenStoreEntry.AccessToken);
             bool isTokenExpired = tokenStoreEntry.ExpiresOn <= DateTime.UtcNow.AddMinutes(GraphTokenBufferInMinutes);
-            bool isRefreshable = IsRefreshableProvider(attribute.IdentityProvider);
+            bool isRefreshable = IsRefreshableProvider("aad");
 
             if (isRefreshable && (isTokenExpired || !isTokenValid))
             {
-                await _client.RefreshToken(jwt, attribute);
+                await _easyAuthClient.RefreshToken(jwt, attribute);
 
                 // Now that the refresh has occured, grab the new token
-                tokenStoreEntry = await _client.GetTokenStoreEntry(jwt, attribute);
+                tokenStoreEntry = await _easyAuthClient.GetTokenStoreEntry(jwt, attribute);
             }
 
             return tokenStoreEntry.AccessToken;
@@ -72,19 +74,10 @@ namespace Microsoft.Azure.WebJobs.Extensions.AuthTokens
 
         private JwtSecurityToken CreateTokenForEasyAuthAccess(TokenBaseAttribute attribute)
         {
-            if (string.IsNullOrEmpty(attribute.UserId))
-            {
-                throw new ArgumentException("A userId is required to obtain an access token.");
-            }
-
-            if (string.IsNullOrEmpty(attribute.IdentityProvider))
-            {
-                throw new ArgumentException("A provider is necessary to obtain an access token.");
-            }
-
-            var identityClaims = new ClaimsIdentity(attribute.UserId);
-            identityClaims.AddClaim(new Claim(ClaimTypes.NameIdentifier, attribute.UserId));
-            identityClaims.AddClaim(new Claim("idp", attribute.IdentityProvider));
+            //var identityClaims = new ClaimsIdentity(attribute.UserId);
+            //identityClaims.AddClaim(new Claim(ClaimTypes.NameIdentifier, attribute.UserId));
+            //identityClaims.AddClaim(new Claim("idp", "aad"));
+            var identityClaims = new ClaimsIdentity();
 
             var baseUrl = $"https://{_options.HostName}/";
             var descr = new SecurityTokenDescriptor
