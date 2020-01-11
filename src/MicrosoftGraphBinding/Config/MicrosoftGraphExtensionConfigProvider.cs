@@ -46,7 +46,6 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph
             IGraphSubscriptionStore subscriptionStore)
         {
             _options = options.Value;
-            _options.SetAppSettings(appSettings);
             _graphServiceClientManager = new GraphServiceClientManager(_options, tokenConverter, graphClientProvider);
             _subscriptionStore = subscriptionStore;
             _loggerFactory = loggerFactory;
