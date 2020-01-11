@@ -17,13 +17,21 @@ namespace Microsoft.Azure.WebJobs.Extensions.MicrosoftGraph.Config
             }
 
             builder.AddExtension<MicrosoftGraphExtensionConfigProvider>()
-                .BindOptions<GraphOptions>()
-                .BindOptions<TokenOptions>()
                 .Services
                 .AddAuthTokenServices()
                 .AddSingleton<IAsyncConverter<TokenBaseAttribute, string>, TokenConverter>()
                 .AddSingleton<IGraphServiceClientProvider, GraphServiceClientProvider>()
-                .AddSingleton<IGraphSubscriptionStore, WebhookSubscriptionStore>();
+                .AddSingleton<IGraphSubscriptionStore, WebhookSubscriptionStore>()
+                .AddOptions<GraphOptions>().Configure<INameResolver>((option, appSettings) =>
+                {
+                    option.SetAppSettings(appSettings);
+                })
+                .Services
+                .AddOptions<TokenOptions>().Configure<INameResolver>((option, appSettings) =>
+                {
+                    option.SetAppSettings(appSettings);
+                });
+
             return builder;
         }
 
