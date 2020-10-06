@@ -1,4 +1,7 @@
 # Azure Functions bindings to O365
+
+**NOTE: This project is no longer maintained and is not recommended for new development. To integrate with the Microsoft Graph from Azure Functions, please instead see [this tutorial](https://docs.microsoft.com/en-us/graph/tutorials/azure-functions).**
+
 Prototype for some WebJobs extension bindings.
 
 This provides a sample Azure Function extensions for Office. 
